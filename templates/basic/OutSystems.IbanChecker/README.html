@@ -1,0 +1,37 @@
+<h2>IBAN (International Bank Account Number) checker: Basic version</h2>
+<h3>Prerequisites</h3>
+<ul>
+<li>.NET 6.0 SDK installed.</li>
+<li>An IDE that supports building .NET 6 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.</li>
+<li>Basic knowledge of C# programming concepts.</li>
+</ul>
+<h3>Usage</h3>
+<ol>
+<li>
+<p>Load the C# project file, <code>OutSystems.IbanChecker.csproj</code>, using a supported IDE.</p>
+<p>Files in the project:</p>
+<ul>
+<li>
+<p><strong>IIbanChecker.cs</strong>: Defines a public interface named <code>IIbanChecker</code>, decorated with the <code>OSInterface</code> attribute. The interface has a single method named <code>Parse</code>, which takes an IBAN string value as input and returns an <code>Iban</code> struct. <code>Parse</code> is exposed as a server action to your ODC apps and libraries.</p>
+</li>
+<li>
+<p><strong>IbanChecker.cs</strong>: Defines a public class named <code>IbanChecker</code> that implements the <code>IIbanChecker</code> interface. The class is a convenient wrapper for the <code>IbanNet</code> library, an <a href="https://github.com/skwasjer/IbanNet">open-source library</a> that provides functionality for parsing and validating IBANs. The class has a private field named <code>_parser</code>, which is an instance of the <code>IIbanParser</code> interface.</p>
+</li>
+<li>
+<p><strong>Iban.cs</strong> Defines a struct named <code>Iban</code>, decorated with the <code>OSStructure</code> attribute. The struct has four public properties: <code>Country</code>, <code>Bban</code>, <code>BankIdentifier</code>, and <code>BranchIdentifier</code>. <code>Iban</code> is exposed as a structure to your ODC apps and libraries.</p>
+</li>
+</ul>
+<p>UML Diagram:</p>
+<p><img src="images/sdk-readme-basic-uml-diag.png" alt="Basic UML diagram" title="Basic UML diagram" /></p>
+</li>
+<li>
+<p>Edit the code to meet your use case. If your project requires unit tests, modify the examples found in <code>../OutSystems.IbanChecker.UnitTests/IbanCheckerTests.cs</code> accordingly.</p>
+</li>
+<li>
+<p>Run the Powershell script <code>generate_upload_package.ps1</code> to generate <code>ExternalLibrary.zip</code>. Rename as required.</p>
+</li>
+<li>
+<p>Upload the generated ZIP file to the ODC Portal. See the <a href="https://www.outsystems.com/goto/external-logic-upload">External Logic feature documentation</a> for guidance on how to do this.</p>
+</li>
+</ol>
+<p><em>(Excerpted from the <a href="https://github.com/OutSystems/OutSystems.ExternalLibraries.SDK#readme">main README of the External Libraries SDK</a>, please refer to that document for additional guidance.)</em></p>

@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32526.322
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutSystems.IbanChecker", "OutSystems.IbanChecker.csproj", "{A372E341-8741-417D-81B2-79685AB7EE1A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnitTests", "UnitTests", "{0AD8287E-B1AF-45E4-9B03-338AC8E8E9AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutSystems.IbanChecker.UnitTests", "..\OutSystems.IbanChecker.UnitTests\OutSystems.IbanChecker.UnitTests.csproj", "{B81C47CE-3F4A-4C65-B988-7D143414AEBC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A372E341-8741-417D-81B2-79685AB7EE1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A372E341-8741-417D-81B2-79685AB7EE1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A372E341-8741-417D-81B2-79685AB7EE1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A372E341-8741-417D-81B2-79685AB7EE1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B81C47CE-3F4A-4C65-B988-7D143414AEBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B81C47CE-3F4A-4C65-B988-7D143414AEBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B81C47CE-3F4A-4C65-B988-7D143414AEBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B81C47CE-3F4A-4C65-B988-7D143414AEBC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8F9CB76A-F832-4708-8E4B-4AEE89D4D38C}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B81C47CE-3F4A-4C65-B988-7D143414AEBC} = {0AD8287E-B1AF-45E4-9B03-338AC8E8E9AD}
+	EndGlobalSection
+EndGlobal
