@@ -173,6 +173,6 @@ Use the [error page documentation](https://www.outsystems.com/goto/sdk-errors) f
 
 ## 7. License
 
-[BSD 3-Clause License](LICENSE)
+[TBC](LICENSE)
 
 Copyright (c) 2023, OutSystems
