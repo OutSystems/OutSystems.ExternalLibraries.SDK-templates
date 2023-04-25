@@ -3,15 +3,15 @@
 
 # Table of Contents
 
-1. [Overview](#overview)
-1. [Prerequisites](#prerequisites)
-1. [Usage](#usage)
+1. [Overview](#1-overview)
+1. [Prerequisites](#2-prerequisites)
+1. [Usage](#3-usage)
    1. [From scratch](#from-scratch)
    1. [From a template](#from-a-template)
-1. [Reference](#reference)
-1. [Best Practices](#best-practices)
-1. [Troubleshooting](#troubleshooting)
-1. [License](#license)
+1. [Reference](#4-reference)
+1. [Best Practices](#5-best-practices)
+1. [Troubleshooting](#6-troubleshooting)
+1. [License](#7-license)
 
 ## 1. Overview
 
