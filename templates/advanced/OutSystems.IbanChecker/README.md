@@ -37,4 +37,4 @@
 
 1. Upload the generated ZIP file to the ODC Portal. See the [External Logic feature documentation](https://www.outsystems.com/goto/external-logic-upload) for guidance on how to do this.
 
-_(Excerpted from the [main README of the External Libraries SDK](https://github.com/OutSystems/OutSystems.ExternalLibraries.SDK#readme), please refer to that document for additional guidance.)_
+_(Excerpted from the [main README of the External Libraries SDK](https://www.outsystems.com/goto/external-logic-readme), please refer to that document for additional guidance.)_
