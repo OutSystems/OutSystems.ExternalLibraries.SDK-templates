@@ -28,6 +28,7 @@ namespace OutSystems.IbanChecker {
         /// Gets the branch identifier, or an empty string if the branch
         /// identifier cannot be extracted.
         /// </summary>
+        public string BranchIdentifier;
 
         /// <summary>
         /// Constructs an Iban struct from the IbanNet.Iban object.
