@@ -5,7 +5,7 @@ namespace OutSystems.IbanChecker {
     /// The IIbanChecker interface defines the methods (exposed as server actions)
     /// for the IBAN validation functionality.
     /// </summary>
-    [OSInterface]
+    [OSInterface(Description = "Enables management and validation of IBANs in OutSystems Developer Cloud (ODC) apps.", IconResourceName = "OutSystems.IbanChecker.resources.iban_checker.png")]
     public interface IIbanChecker {
         /// <summary>
         /// Parses an International Bank Account Number (IBAN).
