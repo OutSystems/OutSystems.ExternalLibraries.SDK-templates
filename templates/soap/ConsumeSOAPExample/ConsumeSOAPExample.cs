@@ -11,12 +11,12 @@ namespace ConsumeSOAPExample{
     public interface ICalculator
     {
         // This method is exposed as a server action to your ODC apps and libraries.
-        [OSAction(Description = "The sum method takes two numbers as input parameters and returns their sum.", IconResourceName = "ConsumeSOAPExample.Resources.SOAP.ico", ReturnName = "sum")]
+        [OSAction(Description = "The sum method takes two numbers as input parameters and returns their sum.", IconResourceName = "ConsumeSOAPExample.Resources.SOAP.jpg", ReturnName = "sum")]
         int Sum(
             [OSParameter(Description = "Number A & B as an integer")] Structures.Numbers numbers
         );
         // This method is exposed as a server action to your ODC apps and libraries.
-        [OSAction(Description = "The subtraction method takes two numbers as input parameters and calculates the difference between the first number and the second number.", IconResourceName = "ConsumeSOAPExample.Resources.SOAP.ico", ReturnName = "sub")]
+        [OSAction(Description = "The subtraction method takes two numbers as input parameters and calculates the difference between the first number and the second number.", IconResourceName = "ConsumeSOAPExample.Resources.SOAP.jpg", ReturnName = "sub")]
         int Subtract(
             [OSParameter(Description = "Number A & B as an integer")] Structures.Numbers numbers
         );
