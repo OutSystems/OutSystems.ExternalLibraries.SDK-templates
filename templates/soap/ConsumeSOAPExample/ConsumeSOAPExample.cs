@@ -24,13 +24,13 @@ namespace ConsumeSOAPExample{
             [OSParameter(Description = "Number A & B as an integer")] Structures.Numbers numbers
         );
         /// <summary>
-        /// Takes two numbers as input parameters and calculates the difference between 
+        /// Takes two numbers as input parameters and returns the difference between 
         /// the first number and the second number. This is done by sending a SOAP request
         /// to the web service, which then processes the subtraction and returns the result 
         /// in the SOAP response.
         /// This method is exposed as a server action to your ODC apps and libraries.
         /// </summary>
-        [OSAction(Description = "The subtraction method takes two numbers as input parameters and calculates the difference between the first number and the second number.", IconResourceName = "ConsumeSOAPExample.Resources.SOAP.jpg", ReturnName = "sub")]
+        [OSAction(Description = "The subtraction method takes two numbers as input parameters and returns the difference between the first number and the second number.", IconResourceName = "ConsumeSOAPExample.Resources.SOAP.jpg", ReturnName = "sub")]
         int Subtract(
             [OSParameter(Description = "Number A & B as an integer")] Structures.Numbers numbers
         );
