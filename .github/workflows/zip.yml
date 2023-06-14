@@ -18,24 +18,22 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.5.2
         with:
           fetch-depth: 0
 
       # Extract the branch name from the HEAD reference.
       - name: Set up branch variable
         id: extract_branch
-        run: echo "::set-output name=branch::$(echo ${GITHUB_HEAD_REF#refs/heads/})"
+        run: echo "BRANCH=$(echo ${GITHUB_HEAD_REF#refs/heads/})" >> $GITHUB_ENV
 
       - name: Switch to correct branch
-        run: git checkout "${{ steps.extract_branch.outputs.branch }}"
+        run: git checkout "${{ env.BRANCH }}"
 
-      # Identify the files that were changed in the pull request and output them for use in subsequent steps.
       - name: Identify changed files
         id: changed_files
         run: |
           git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > changed_files.txt
-          echo ::set-output name=files::$(cat changed_files.txt)
           
       # If directories have been modified, compress them, commit the .zip files to the repository, and push the changes.
       - name: Compress modified directories, commit, and push
@@ -49,7 +47,7 @@ jobs:
             IFS=':' read -r dir zip <<< "$pair"
             dir_to_zip[$dir]=$zip
           done
-          changed_files="${{ steps.changed_files.outputs.files }}"
+          changed_files="$(cat changed_files.txt)"
 
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -57,6 +55,7 @@ jobs:
           # Initialize an empty string to store the names of updated zip files.
           updated_zips=""
           for dir in "${!dir_to_zip[@]}"; do
+            zip_name=${dir_to_zip[$dir]}
             if [[ $changed_files == *"$dir/"* ]]; then
               # Check if the last commit that changed the directory is newer than the last commit that changed the zip file.
               last_dir_change=$(git log -1 --format="%at" -- "$dir")
@@ -65,31 +64,37 @@ jobs:
                 git pull
                 git clean -dfx
                 cd "$dir"
-                zip_name=${dir_to_zip[$dir]}
-                rm -f "$GITHUB_WORKSPACE/$zip_name.zip"
+                if [ -f "$GITHUB_WORKSPACE/$zip_name.zip" ]; then
+                  rm "$GITHUB_WORKSPACE/$zip_name.zip"
+                fi
                 zip -r "$GITHUB_WORKSPACE/$zip_name.zip" .
                 cd "$GITHUB_WORKSPACE"
                 git add "$zip_name.zip"
                 git commit -m "Updated $zip_name.zip"
                 updated_zips+="$zip_name.zip, "
               fi
+            elif [ -f "$GITHUB_WORKSPACE/$zip_name.zip" ]; then
+              # If the zip file exists but the directory has not been changed, remove the zip file.
+              rm "$GITHUB_WORKSPACE/$zip_name.zip"
+              git add "$GITHUB_WORKSPACE/$zip_name.zip"
+              git commit -m "Removed $zip_name.zip due to rollback"
             fi
           done
-    
-          # Push the changes to the repository.
-          git push origin "${{ steps.extract_branch.outputs.branch }}"
 
-          echo ::set-output name=updated_zips::${updated_zips%??}
-          
+          # Push the changes to the repository.
+          git push origin "${{ env.BRANCH }}"
+
+          echo "UPDATED_ZIPS=${updated_zips%??}" >> $GITHUB_ENV
+
       # Comment on the pull request to notify that the zipped files have been added.
       - name: Comment PR
-        uses: actions/github-script@v5
-        if: steps.compress_modified_directories_commit_and_push.outputs.updated_zips != ''
+        uses: actions/github-script@v6.4.1
+        if: env.UPDATED_ZIPS != ''
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Updated zip files: ${{ steps.compress_modified_directories_commit_and_push.outputs.updated_zips }}'
+              body: 'Updated zip files: ${{ env.UPDATED_ZIPS }}'
             })
