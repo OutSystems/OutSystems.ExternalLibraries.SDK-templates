@@ -1,4 +1,4 @@
-## IBAN (International Bank Account Number) checker: Advanced version
+## IBAN (International Bank Account Number) checker: Advanced version 
 
 ### Prerequisites
 
