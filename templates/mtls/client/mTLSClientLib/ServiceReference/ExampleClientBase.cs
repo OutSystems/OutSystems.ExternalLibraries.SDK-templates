@@ -6,7 +6,8 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace mTLSclient {
     internal class ExampleClientBase {
-        private static readonly string ClientCertificatePath = @"./Certificates/mTLSclient.pfx";
+        private static readonly string ClientCertificatePath;
+        private static readonly string ClientCertificatePassword;
 
         private static bool ValidateServerCertificate(HttpRequestMessage request, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors errors) {
             // Perform custom server certificate validation if required
@@ -19,7 +20,7 @@ namespace mTLSclient {
             if(!File.Exists(ClientCertificatePath)) {
                 throw new FileNotFoundException($"Could not find the file {ClientCertificatePath}");
             }
-            var clientCertificate = new X509Certificate2(ClientCertificatePath, "TestSecret!");
+            var clientCertificate = new X509Certificate2(ClientCertificatePath, ClientCertificatePassword);
 
             // Create an HttpClient with MTLS authentication
             var httpClient = new HttpClient(new HttpClientHandler {
