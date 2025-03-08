@@ -27,9 +27,9 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 
-//app.UseAuthentication();
+app.UseAuthentication();
 
-//app.UseAuthorization();
+app.UseAuthorization();
 
 var summaries = new[]
 {
