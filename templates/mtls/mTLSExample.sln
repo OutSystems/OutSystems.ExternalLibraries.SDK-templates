@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "service", "service", "{4E84431F-A3F3-4826-AB8D-5F8B8448CA07}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "client", "client", "{F7AE470C-35C3-43F8-A3E2-822676FABE6B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{5B8A22EC-C836-4473-9617-79D7F17F5499}"
+	ProjectSection(SolutionItems) = preProject
+		resources\generate_clientcode.ps1 = resources\generate_clientcode.ps1
+		resources\MySwaggerConfig.nswag.template = resources\MySwaggerConfig.nswag.template
+		resources\swagger.json = resources\swagger.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nswagtemplates", "nswagtemplates", "{CF904EBC-E2D9-4A68-AB4E-EB2D9286851F}"
+	ProjectSection(SolutionItems) = preProject
+		resources\nswagtemplates\Class.Annotations.liquid = resources\nswagtemplates\Class.Annotations.liquid
+		resources\nswagtemplates\Class.liquid = resources\nswagtemplates\Class.liquid
+		resources\nswagtemplates\Class.Property.Annotations.liquid = resources\nswagtemplates\Class.Property.Annotations.liquid
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mTLSClientLib", "client\mTLSClientLib\mTLSClientLib.csproj", "{C4102CF2-922E-4EC9-A418-603877C66537}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mTLSClientLib.Test", "client\mTLSClientLib.Test\mTLSClientLib.Test.csproj", "{2D4D6983-CFEE-4EBC-B631-0A9DC40443B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mTLSAPIService", "service\mTLSAPIService\mTLSAPIService.csproj", "{990260A5-D5F0-439A-B069-C737320D8584}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C4102CF2-922E-4EC9-A418-603877C66537}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4102CF2-922E-4EC9-A418-603877C66537}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4102CF2-922E-4EC9-A418-603877C66537}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4102CF2-922E-4EC9-A418-603877C66537}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D4D6983-CFEE-4EBC-B631-0A9DC40443B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D4D6983-CFEE-4EBC-B631-0A9DC40443B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D4D6983-CFEE-4EBC-B631-0A9DC40443B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D4D6983-CFEE-4EBC-B631-0A9DC40443B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{990260A5-D5F0-439A-B069-C737320D8584}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{990260A5-D5F0-439A-B069-C737320D8584}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{990260A5-D5F0-439A-B069-C737320D8584}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{990260A5-D5F0-439A-B069-C737320D8584}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CF904EBC-E2D9-4A68-AB4E-EB2D9286851F} = {5B8A22EC-C836-4473-9617-79D7F17F5499}
+		{C4102CF2-922E-4EC9-A418-603877C66537} = {F7AE470C-35C3-43F8-A3E2-822676FABE6B}
+		{2D4D6983-CFEE-4EBC-B631-0A9DC40443B9} = {F7AE470C-35C3-43F8-A3E2-822676FABE6B}
+		{990260A5-D5F0-439A-B069-C737320D8584} = {4E84431F-A3F3-4826-AB8D-5F8B8448CA07}
+	EndGlobalSection
+EndGlobal
