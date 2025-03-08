@@ -1,0 +1,10 @@
+﻿    [OSStructureField(DataType = OSDataType.{%- if property.Type == "string" -%} {{- "Text" -}}
+{%- elsif property.Type == "int" -%} {{- "Integer" -}}
+{%- elsif property.Type == "long" -%} {{- "LongInteger" -}}
+{%- elsif property.Type == "double" -%} {{- "Decimal" -}}
+{%- elsif property.Type == "bool" -%} {{- "Boolean" -}}
+{%- elsif property.Type == "byte[]" -%} {{- "BinaryData" -}}
+{%- elsif property.Type == "TimeSpan" -%} {{- "Time" -}}
+{%- elsif property.Type == "DateTime" -%} {{- "DateTimeOffset" -}}
+{%- else -%} {{- "InferredFromDotNetType" -}} 
+{%- endif -%}, IsMandatory = {{ property.JsonPropertyRequiredCode == "Newtonsoft.Json.Required.Always" }})]
