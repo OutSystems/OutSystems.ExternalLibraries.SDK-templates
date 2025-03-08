@@ -370,3 +370,6 @@ node_modules/
 
 # Vale rules
 .vale.ini
+
+# NSwag
+*.nswag
