@@ -2,7 +2,6 @@
 using System.Linq;
 using IbanNet;
 using IbanNet.Registry;
-using Microsoft.Extensions.Logging;
 
 namespace OutSystems.IbanChecker {
     /// <summary>
@@ -24,20 +23,12 @@ namespace OutSystems.IbanChecker {
         private IIbanValidator _validator;
 
         /// <summary>
-        /// An instance of ILogger from the Microsoft.Extensions.Logging library, used for
-        /// logging.
-        /// </summary>
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// The constructor initializes the IbanChecker class with the specified logger and creates new instances
+        /// The constructor initializes the IbanChecker class with new instances
         /// of the IbanParser and IbanValidator classes from the IbanNet library.
         /// </summary>
-        /// <param name="logger">The logger instance used for logging operations within the IbanChecker.</param>
-        public IbanChecker(ILogger logger) {
+        public IbanChecker() {
             _validator = new IbanValidator();
             _parser = new IbanParser(_validator);
-            _logger = logger;
         }
 
         /// <summary>
@@ -49,7 +40,6 @@ namespace OutSystems.IbanChecker {
         /// <returns>An Iban struct representing the parsed IBAN.</returns>
         /// <exception cref="System.Exception">Thrown if the parsing fails.</exception>
         public Structures.Iban Parse(string value) {
-            _logger.LogInformation("Parsing IBAN: {IbanValue}", value);
             return new Structures.Iban(_parser.Parse(value));
         }
 
@@ -66,10 +56,8 @@ namespace OutSystems.IbanChecker {
             IbanNet.Iban? internalIban;
             if (_parser.TryParse(value, out internalIban)) {
                 iban = new Structures.Iban(internalIban);
-                _logger.LogInformation("Successfully parsed IBAN: {IbanValue}", value);
                 return true;
             }
-            _logger.LogWarning("Failed to parse IBAN: {IbanValue}", value);
             return false;
         }
 
@@ -87,10 +75,8 @@ namespace OutSystems.IbanChecker {
                 var validatorWithRejectedCountries = new IbanValidator(new IbanValidatorOptions {
                     Rules = { new CustomRules.RejectCountryRule(rejectedCountries) }
                 });
-                _logger.LogInformation("Validating IBAN: {IbanValue} with rejected countries: {RejectedCountries}", iban, rejectedCountries);
                 return new Structures.ValidationResult(validatorWithRejectedCountries.Validate(iban));
             }
-            _logger.LogInformation("Validating IBAN: {IbanValue} with default rules", iban);
             return new Structures.ValidationResult(_validator.Validate(iban));
         }
 
@@ -108,16 +94,12 @@ namespace OutSystems.IbanChecker {
             var ibanBuilder = new IbanNet.Builders.IbanBuilder();
             IbanRegistry.Default.TryGetValue(iban.Country.TwoLetterISORegionName, out IbanCountry? country);
             if (country == null) {
-                var errorMessage = "Invalid country: " + iban.Country.TwoLetterISORegionName;
-                _logger.LogError("Failed to format IBAN. {ErrorMessage}.", errorMessage);
-                throw new System.Exception(errorMessage);
-        }
+                throw new System.Exception("Invalid country: " + iban.Country.TwoLetterISORegionName);
+            }
             var ib = _parser.Parse(ibanBuilder
                 .WithCountry(country)
                 .WithBankAccountNumber(iban.Bban)
                 .Build());
-            _logger.LogInformation("Formatting IBAN for country: {CountryCode} with format: {Format}.",
-                iban.Country.TwoLetterISORegionName, format ?? "<default>");
             return ib.ToString(format);
         }
     }
