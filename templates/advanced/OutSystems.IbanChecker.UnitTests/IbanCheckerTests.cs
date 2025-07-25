@@ -1,5 +1,6 @@
 using IbanNet;
 using IbanNet.Registry;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using OutSystems.ExternalLibraries.SDK;
 using Iban = OutSystems.IbanChecker.Structures.Iban;
@@ -78,7 +79,8 @@ public class IbanCheckerTests {
         // valid IBAN string using the IbanParser.
         var parser = new IbanParser(IbanRegistry.Default);
         var iban = parser.Parse("NL91 ABNA 0417 1643 00");
-        var checker = new IbanChecker();
+        var logger = new LoggerFactory().CreateLogger<OutSystems.IbanChecker.IbanChecker>();
+        var checker = new IbanChecker(logger);
 
         // Act: Parse a sample valid IBAN string using the IbanChecker.
         var ibanStruct = checker.Parse("NL91 ABNA 0417 1643 00");
@@ -99,7 +101,8 @@ public class IbanCheckerTests {
         // valid IBAN string using the IbanParser.
         var parser = new IbanParser(IbanRegistry.Default);
         var iban = parser.Parse("NL91 ABNA 0417 1643 00");
-        var checker = new IbanChecker();
+        var logger = new LoggerFactory().CreateLogger<OutSystems.IbanChecker.IbanChecker>();
+        var checker = new IbanChecker(logger);
 
         // Act: Try to parse a sample valid IBAN string using the IbanChecker and
         // check for success.
@@ -122,8 +125,9 @@ public class IbanCheckerTests {
     // </summary>
     [Test]
     public void IbanCheckerCorrectlyTryParsesInvalidIban() {
+        var logger = new LoggerFactory().CreateLogger<OutSystems.IbanChecker.IbanChecker>();
         // Setup: Instantiate a new IbanChecker.
-        var checker = new IbanChecker();
+        var checker = new IbanChecker(logger);
 
         // Act: Try to parse a sample invalid IBAN string using the IbanChecker and
         // check for failure.
@@ -145,8 +149,9 @@ public class IbanCheckerTests {
     /// </summary>
     [Test]
     public void IbanCheckerCorrectlyValidatesIbanFromRejectedCountry() {
+        var logger = new LoggerFactory().CreateLogger<OutSystems.IbanChecker.IbanChecker>();
         // Setup: Instantiate a new IbanChecker.
-        var checker = new IbanChecker();
+        var checker = new IbanChecker(logger);
 
         // Act: Validate an IBAN using the IbanChecker, providing a list of
         // rejected countries.
@@ -169,8 +174,9 @@ public class IbanCheckerTests {
     /// </summary>
     [Test]
     public void IbanCheckerCorrectlyValidatesIbanFromAcceptedCountry() {
+        var logger = new LoggerFactory().CreateLogger<OutSystems.IbanChecker.IbanChecker>();
         // Setup: Instantiate a new IbanChecker.
-        var checker = new IbanChecker();
+        var checker = new IbanChecker(logger);
 
         // Act: Validate an IBAN using the IbanChecker, providing a list of
         // rejected countries that does not include the IBAN's country code.
