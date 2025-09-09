@@ -13,7 +13,7 @@ $configfile = Get-Content -path MySwaggerConfig.nswag.template -Raw
 if($swaggerlocation.ToLower().StartsWith("http")) {
 	$configfile =  $configfile.Replace('{{swaggerurl}}',$swaggerlocation)
 } else {
-	$jsonstring = (Get-Content -path .\swagger.json -Raw | ConvertTo-Json | ConvertFrom-Json).value | ConvertTo-Json
+	$jsonstring = (Get-Content -path .\swagger.json -Raw) | ConvertTo-Json
 	$configfile =  $configfile.Replace('{{swaggerurl}}','').
 							   Replace('{{swaggerjson}}',$jsonstring)
 }
@@ -31,4 +31,4 @@ if(![bool] (Get-Command -ErrorAction Ignore -Type Application nswag)) {
 }
 
 echo "Generating client files with NSwag"
-nswag run /runtime:Net80
+nswag run
