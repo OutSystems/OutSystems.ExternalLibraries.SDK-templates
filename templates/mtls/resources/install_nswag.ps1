@@ -1,41 +1,41 @@
-<#
-.SYNOPSIS
-    Installs or updates the NSwag.Console .NET global tool.
+[CmdletBinding()]
+param()
 
-.DESCRIPTION
-    This script installs NSwag.Console if it's not present,
-    or updates it if it is already installed. Finally, it verifies the installation
-    by displaying the version number.
+$packageName = "nswag"
 
-.NOTES
-    Requires the .NET SDK to be installed on the system.
-#>
+# Check if npm is available in the system's PATH.
+Write-Host "Checking for prerequisites (Node.js and npm)..."
+$npmPath = Get-Command npm -ErrorAction SilentlyContinue
 
-# --- Configuration ---
-$ToolName = "NSwag.ConsoleCore"
+if ($null -eq $npmPath) {
+    # If npm is not found, inform user and exit.
+    Write-Host -ForegroundColor Red "Error: 'npm' command not found."
+    Write-Host -ForegroundColor Yellow "Please install Node.js (which includes npm) from https://nodejs.org/"
+    Write-Host -ForegroundColor Yellow "After installation, ensure it's in your system's PATH, then re-run this script."
 
-# --- Main Logic ---
-try {
-    Write-Host "Checking for existing installation of '$ToolName'..."
+    exit 1
+}
+else {
+    Write-Host -ForegroundColor Green "Success: npm found at $($npmPath.Source)"
+    Write-Host "Proceeding with installation..."
+    Write-Host ""
+}
 
-    # Check if the tool is already installed
-    $installedTools = dotnet tool list --global
+# Run the npm command to install NSwag globally.
+Write-Host "Attempting to install '$packageName' globally via npm. This may take a moment..."
+npm install -g $packageName
+
+# Check the exit code of the last command to determine success or failure.
+if ($LASTEXITCODE -eq 0) {
+    # Success case
+    Write-Host -ForegroundColor Green "'$packageName' has been installed successfully!"
+    Write-Host ""
+    Write-Host "Verifying installation by checking the version and updating to use Net 8 binaries:"
     
-    if ($installedTools -like "*$($ToolName.ToLower())*") {
-        # If installed, update it to the latest version
-        Write-Host "'$ToolName' is already installed. Updating to the latest version..."
-        dotnet tool update --global $ToolName
-    } else {
-        # If not installed, install it
-        Write-Host "'$ToolName' not found. Installing now..."
-        dotnet tool install --global $ToolName
-    }
-
-    # Verify the installation by checking the version
-    Write-Host "Installation/Update complete. Verifying..."
-    nswag version
-
-} catch {
-    Write-Error "An error occurred. Please ensure the .NET SDK is installed and in your PATH."
-    Write-Error $_.Exception.Message
+    # Update NSWag version to use .Net 8
+    nswag version /runtime:Net80
+}
+else {
+    Write-Host -ForegroundColor Red "Installation failed. Please review the npm output above for errors."
+    Write-Host -ForegroundColor Yellow "You may need to run PowerShell as an Administrator."
 }
