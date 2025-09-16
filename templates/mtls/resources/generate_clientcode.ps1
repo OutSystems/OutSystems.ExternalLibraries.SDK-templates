@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param (
-	[Parameter(Mandatory=$true)]
-	[string]$swaggerlocation,
+	[string]$swaggerlocation = ".",
 	[string]$namespace = "mTLSclient",
 	[string]$classname = "ExampleClient",
 	[string]$clientbaseclass = "ExampleClientBase",
