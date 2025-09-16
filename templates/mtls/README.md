@@ -15,7 +15,7 @@ Before you can generate the client code, you need the NSwag command-line tool. Y
 * **Option A (Manual):** Follow the official installation instructions on the [NSwag repository](https://github.com/RicoSuter/NSwag).
 * **Option B (Helper Script):** Run the PowerShell helper script included in this template:
     ```powershell
-    .\_resources_\install_nswag.ps1
+    .\resources\install_nswag.ps1
     ```
 
 
@@ -48,16 +48,14 @@ If you encounter the following error message while running the generation script
 
 #### **Solution:**
 
-You will need to update the NSwag template file to match the runtime used by your local NSwag installation.
+You will need to update the .Net binaries being used by NSwag to point to the version of .Net you are using.
 
-1.  **Check your NSwag runtime version** by running the following command:
+1.  **Update your NSwag .Net 8 rbinaries** by running the following command:
     ```powershell
-    nswag version
+    nswag version /runtime:Net80
     ```
 
-2.  **Open the template file:** `MySwaggerComfig.nswag.template`.
-
-3.  **Update the runtime property.** Change the value of `"runtime"` to reflect the version you found in step 1. For example, if `nswag version` showed `Net90`, your configuration file should look like this:
+2.  **Update the runtime property.** Change the value of `"runtime"` to ensure the version matches that which you found in step 1. For example, if `nswag version` showed `Net80`, your configuration file should look like this:
     ```json
-    "runtime": "Net90"
+    "runtime": "Net80"
     ```
