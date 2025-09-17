@@ -12,11 +12,13 @@ This README outlines the steps necessary to generate and compile the example cod
 
 Before you can generate the client code, you need the NSwag command-line tool. You have two options for installation:
 
-* **Option A (Manual):** Follow the official installation instructions on the [NSwag repository](https://github.com/RicoSuter/NSwag).
+* **Option A (Manual):** Follow the official installation instructions on the [NSwag repository](https://github.com/RicoSuter/NSwag) making sure you install a version that supports .Net 8.
 * **Option B (Helper Script):** Run the PowerShell helper script included in this template:
+
     ```powershell
-    .\resources\install_nswag.ps1
+    .\install_nswag.ps1
     ```
+    This script will use npm to install the latest version of NSwag and update NSwag to use .Net 8 as the default runtime.
 
 
 ## 2. Generating and Building the Client Library
@@ -50,7 +52,7 @@ If you encounter the following error message while running the generation script
 
 You will need to update the .Net binaries being used by NSwag to point to the version of .Net you are using.
 
-1.  **Update your NSwag .Net 8 rbinaries** by running the following command:
+1.  **Update your NSwag .Net 8 binaries** by running the following command:
     ```powershell
     nswag version /runtime:Net80
     ```
