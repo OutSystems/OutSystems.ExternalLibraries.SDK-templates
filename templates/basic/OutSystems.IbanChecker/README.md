@@ -2,8 +2,8 @@
 
 ### Prerequisites
 
-* .NET 6.0 SDK installed.
-* An IDE that supports building .NET 6 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.
+* .NET 8.0 SDK installed.
+* An IDE that supports building .NET 8 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.
 * Basic knowledge of C# programming concepts.
 
 ### Usage
