@@ -30,10 +30,10 @@ if ($LASTEXITCODE -eq 0) {
     # Success case
     Write-Host -ForegroundColor Green "'$packageName' has been installed successfully!"
     Write-Host ""
-    Write-Host "Verifying installation by checking the version and updating to use Net 8 binaries:"
+    Write-Host "Verifying installation by checking the version and updating to use Net 10 binaries:"
     
-    # Update NSWag version to use .Net 8
-    nswag version /runtime:Net80
+    # Update NSWag version to use .Net 10 (change to Net80 if you are targeting .NET 8)
+    nswag version /runtime:Net100
 }
 else {
     Write-Host -ForegroundColor Red "Installation failed. Please review the npm output above for errors."

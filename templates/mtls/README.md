@@ -12,13 +12,13 @@ This README outlines the steps necessary to generate and compile the example cod
 
 Before you can generate the client code, you need the NSwag command-line tool. You have two options for installation:
 
-* **Option A (Manual):** Follow the official installation instructions on the [NSwag repository](https://github.com/RicoSuter/NSwag) making sure you install a version that supports .Net 8.
+* **Option A (Manual):** Follow the official installation instructions on the [NSwag repository](https://github.com/RicoSuter/NSwag) making sure you install a version that supports .NET 8 or .NET 10.
 * **Option B (Helper Script):** Run the PowerShell helper script included in this template:
 
     ```powershell
     .\install_nswag.ps1
     ```
-    This script will use npm to install the latest version of NSwag and update NSwag to use .Net 8 as the default runtime.
+    This script will use npm to install the latest version of NSwag and update NSwag to use .NET 10 as the default runtime.
 
 
 ## 2. Generating and Building the Client Library
@@ -46,18 +46,20 @@ Follow these steps to generate the `ExampleClient` code and build the final libr
 If you encounter the following error message while running the generation script, it means the .NET runtime version expected by NSwag doesn't match the one specified in the configuration.
 
 > **Error:**
-> `System.InvalidOperationException: The specified runtime in the document (Net80) differs from the current process runtime (Net90). Change the runtime with the '/runtime:Net80' parameter or run the file with the correct command line binary.`
+> `System.InvalidOperationException: The specified runtime in the document (Net100) differs from the current process runtime (Net80). Change the runtime with the '/runtime:Net100' parameter or run the file with the correct command line binary.`
 
 #### **Solution:**
 
-You will need to update the .Net binaries being used by NSwag to point to the version of .Net you are using.
+You will need to update the .NET binaries being used by NSwag to match the version of .NET you are targeting (`Net80` for .NET 8, `Net100` for .NET 10).
 
-1.  **Update your NSwag .Net 8 binaries** by running the following command:
+1.  **Update your NSwag .NET binaries** by running the following command (adjust the runtime token to match your target):
     ```powershell
-    nswag version /runtime:Net80
+    nswag version /runtime:Net100
     ```
+    Use `/runtime:Net80` if you are targeting .NET 8.
 
-2.  **Update the runtime property.** Change the value of `"runtime"` to ensure the version matches that which you found in step 1. For example, if `nswag version` showed `Net80`, your configuration file should look like this:
+2.  **Update the runtime property.** Change the value of `"runtime"` in `MySwaggerConfig.nswag` to match the token used in step 1. For example, if targeting .NET 10, your configuration file should look like this:
     ```json
-    "runtime": "Net80"
+    "runtime": "Net100"
     ```
+    For .NET 8, use `"runtime": "Net80"` instead.

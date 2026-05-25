@@ -1,3 +1,6 @@
 Set-ExecutionPolicy -Scope CurrentUser Unrestricted
-dotnet publish -c Release -r linux-x64 --self-contained false
-Compress-Archive -Path .\bin\Release\net8.0\linux-x64\publish\* -DestinationPath ExternalLibrary.zip
+
+foreach ($tfm in @("net8.0", "net10.0")) {
+    dotnet publish -c Release -r linux-x64 --self-contained false -f $tfm
+    Compress-Archive -Path ".\bin\Release\$tfm\linux-x64\publish\*" -DestinationPath "ExternalLibrary_$tfm.zip" -Force
+}
