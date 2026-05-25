@@ -2,8 +2,8 @@
 
 ### Prerequisites
 
-* .NET 8.0 SDK installed.
-* An IDE that supports building .NET 8 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.
+* .NET 8.0 or .NET 10.0 SDK installed.
+* An IDE that supports building .NET 8 or .NET 10 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.
 * Basic knowledge of C# programming concepts.
 
 ### Usage
@@ -24,7 +24,7 @@
 
 1. Edit the code to meet your use case. If your project requires unit tests, modify the examples found in `../OutSystems.IbanChecker.UnitTests/IbanCheckerTests.cs` accordingly.
 
-1. Run the Powershell script `generate_upload_package.ps1` to generate `ExternalLibrary.zip`. Rename as required.
+1. Run the Powershell script `generate_upload_package.ps1` to generate the upload packages. The script produces two ZIP files — `ExternalLibrary_net8.0.zip` and `ExternalLibrary_net10.0.zip` — one for each supported framework. Upload the one matching your target runtime.
 
 1. Upload the generated ZIP file to the ODC Portal. See the [External Logic feature documentation](https://www.outsystems.com/goto/external-logic) for guidance on how to do this.
 
