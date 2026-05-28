@@ -24,7 +24,7 @@
 
 1. Edit the code to meet your use case. If your project requires unit tests, modify the examples found in `../OutSystems.IbanChecker.UnitTests/IbanCheckerTests.cs` accordingly.
 
-1. Run the Powershell script `generate_upload_package.ps1` to generate the upload packages. The script produces two ZIP files — `ExternalLibrary_net8.0.zip` and `ExternalLibrary_net10.0.zip` — one for each supported framework. Upload the one matching your target runtime.
+1. Run the Powershell script `generate_upload_package.ps1` to generate the upload packages. The script produces two ZIP files — `ExternalLibrary_net8.0.zip` and `ExternalLibrary.zip` — one for each supported framework. Upload the one matching your target runtime.
 
 1. Upload the generated ZIP file to the ODC Portal. See the [External Logic feature documentation](https://www.outsystems.com/goto/external-logic) for guidance on how to do this.
 
