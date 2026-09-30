@@ -1,9 +1,10 @@
 <h2>IBAN (International Bank Account Number) checker: Advanced version</h2>
 <h3>Prerequisites</h3>
 <ul>
-<li>.NET 8.0 SDK installed.</li>
-<li>An IDE that supports building .NET 8 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.</li>
+<li>.NET 8.0 or .NET 10.0 SDK installed.</li>
+<li>An IDE that supports building .NET 8 or .NET 10 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.</li>
 <li>Basic knowledge of C# programming concepts.</li>
+<li>To use the FileStorage SDK (see <a href="#using-the-filestorage-sdk">Using the FileStorage SDK</a>), the project needs <code>OutSystems.ExternalLibraries.SDK</code> 1.7.0 or later and the <code>OutSystems.ExternalLibraries.SDK.FileStorage</code> package. Both are already referenced by this template.</li>
 </ul>
 <h3>Usage</h3>
 <ol>
@@ -12,7 +13,7 @@
 <p>Files in the project:</p>
 <ul>
 <li>
-<p><strong>IIbanChecker.cs</strong>: Defines a public interface named <code>IIbanChecker</code> decorated with the <code>OSInterface</code> attribute. The interface has four methods:</p>
+<p><strong>IIbanChecker.cs</strong>: Defines a public interface named <code>IIbanChecker</code> decorated with the <code>OSInterface</code> attribute. The interface has seven methods:</p>
 <ul>
 <li>
 <code>Parse</code>: Takes an IBAN string as input and returns an <code>Iban</code> struct.</li>
@@ -22,11 +23,17 @@
 <code>Validate</code>: Takes an IBAN string as input as checks it against a specific rule and a list of rejected countries.</li>
 <li>
 <code>Format</code>: Takes an <code>Iban</code> struct and an optional format string as input and returns a formatted string representation of the IBAN.</li>
+<li>
+<code>BulkValidate</code>: Takes a text file with one IBAN per line (and an optional list of rejected countries) and returns a CSV file with the validation result of each IBAN. It shows how to use the FileStorage SDK for file input and file output.</li>
+<li>
+<code>CalculateSha256</code>: Takes a file and returns its SHA-256 hash. It shows how to read a file as a stream.</li>
+<li>
+<code>GetFileMetadata</code>: Takes a file and returns a <code>FileDetails</code> struct with its name, content type, size and user metadata. It shows the FileStorage SDK metadata API.</li>
 </ul>
 <p>Each method is exposed as a server action to your ODC apps and libraries.</p>
 </li>
 <li>
-<p><strong>IbanChecker.cs</strong>: Defines a public class named <code>IbanChecker</code> that implements the <code>IIbanChecker</code> interface. The class is a convenient wrapper for the <code>IbanNet</code> library, an <a href="https://github.com/skwasjer/IbanNet">open-source library</a> that provides functionality for parsing and validating IBANs. The class contains private fields <code>_parser</code> and <code>_validator</code>, which are instances of the <code>IIbanParser</code> and <code>IIbanValidator</code> interfaces. The constructor initializes these instances for use in the class methods.</p>
+<p><strong>IbanChecker.cs</strong>: Defines a public class named <code>IbanChecker</code> that implements the <code>IIbanChecker</code> interface. The class is a convenient wrapper for the <code>IbanNet</code> library, an <a href="https://github.com/skwasjer/IbanNet">open-source library</a> that provides functionality for parsing and validating IBANs. The class contains private fields <code>_parser</code> and <code>_validator</code>, which are instances of the <code>IIbanParser</code> and <code>IIbanValidator</code> interfaces. The constructor initializes these instances for use in the class methods. It also gets the FileStorage SDK instance, kept in the private field <code>_fileStorage</code>, that the file actions use.</p>
 </li>
 <li>
 <p><strong>Structures/Iban.cs</strong> Defines a struct named <code>Iban</code>, decorated with the <code>OSStructure</code> attribute. The struct has four public properties: <code>Country</code>, <code>Bban</code>, <code>BankIdentifier</code>, and <code>BranchIdentifier</code>. It's exposed as a structure to your ODC apps and libraries.</p>
@@ -38,18 +45,163 @@
 <p><strong>Structures/ValidationResult.cs</strong> Defines a struct named <code>ValidationResult</code>, decorated with the <code>OSStructure</code> attribute. The struct has three public properties: <code>AttemptedValue</code>, <code>Country</code>, and <code>Error</code>. It's exposed as a structure to your ODC apps and libraries.</p>
 </li>
 <li>
+<p><strong>Structures/FileDetails.cs</strong> Defines a struct named <code>FileDetails</code>, decorated with the <code>OSStructure</code> attribute. The struct has four public properties: <code>FileName</code>, <code>ContentType</code>, <code>Size</code>, and <code>UserData</code> (a list of <code>MetadataEntry</code>). It's exposed as a structure to your ODC apps and libraries.</p>
+</li>
+<li>
+<p><strong>Structures/MetadataEntry.cs</strong> Defines a struct named <code>MetadataEntry</code>, decorated with the <code>OSStructure</code> attribute. The struct has two public properties: <code>Key</code> and <code>Value</code>. It's exposed as a structure to your ODC apps and libraries.</p>
+</li>
+<li>
 <p><strong>CustomRules/RejectedCountriesRule.cs</strong>: Defines a custom IBAN validation rule, <code>RejectCountryRule</code>, to reject specified country codes. It also defines an associated error result class, <code>CountryNotAcceptedError</code>, for handling rejected countries.</p>
 </li>
 </ul>
+<p>Files in the unit test project (<code>../OutSystems.IbanChecker.UnitTests</code>):</p>
+<ul>
+<li>
+<p><strong>IbanCheckerTests.cs</strong>: Unit tests for parsing, validating and the structures.</p>
 </li>
 <li>
-<p>Edit the code to meet your use case. If your project requires unit tests, modify the examples found in <code>../OutSystems.IbanChecker.UnitTests/IbanCheckerTests.cs</code> accordingly.</p>
+<p><strong>IbanCheckerFileStorageTests.cs</strong>: Unit tests for <code>BulkValidate</code>, <code>CalculateSha256</code> and <code>GetFileMetadata</code>, plus guard tests that keep the test-only <code>Loader</code> out of the library.</p>
 </li>
 <li>
-<p>Run the Powershell script <code>generate_upload_package.ps1</code> to generate <code>ExternalLibrary.zip</code>. Rename as required.</p>
+<p><strong>FileStorageTesting/InMemoryFileStorage.cs</strong>: A complete in-memory implementation of <code>IFileStorage</code> that you can copy to your own test projects.</p>
+</li>
+<li>
+<p><strong>FileStorageTesting/Loader.cs</strong>: The test-only hook that makes <code>FileStorage.GetInstance()</code> return <code>InMemoryFileStorage</code>.</p>
+</li>
+<li>
+<p><strong>FileStorageTesting/InMemoryFileStorageTests.cs</strong>: Unit tests for <code>InMemoryFileStorage</code>.</p>
+</li>
+</ul>
+<p>See <a href="#unit-testing-code-that-uses-filestorage">Unit testing code that uses FileStorage</a>.</p>
+</li>
+<li>
+<p>Edit the code to meet your use case. If your project requires unit tests, modify the examples found in <code>../OutSystems.IbanChecker.UnitTests/IbanCheckerTests.cs</code> and <code>../OutSystems.IbanChecker.UnitTests/IbanCheckerFileStorageTests.cs</code> accordingly.</p>
+</li>
+<li>
+<p>Run the Powershell script <code>generate_upload_package.ps1</code> to generate the upload packages. The script produces two ZIP files — <code>ExternalLibrary_net8.0.zip</code> and <code>ExternalLibrary.zip</code> — one for each supported framework. Upload the one matching your target runtime.</p>
 </li>
 <li>
 <p>Upload the generated ZIP file to the ODC Portal. See the <a href="https://www.outsystems.com/goto/external-logic-upload">External Logic feature documentation</a> for guidance on how to do this.</p>
 </li>
 </ol>
-<p><em>(Excerpted from the <a href="hhttps://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>, please refer to that document for additional guidance.)</em></p>
+<h3 id="using-the-filestorage-sdk">Using the FileStorage SDK</h3>
+<p>External libraries receive and return files as <code>IOSFile</code> handles. The FileStorage SDK (<code>OutSystems.ExternalLibraries.SDK.FileStorage</code>) reads and creates the content of those files in ODC file storage. The same code runs on ODC Cloud and ODC Self-Hosted.</p>
+<p>Get the SDK instance with <code>FileStorage.GetInstance()</code>. <code>IbanChecker</code> does this once, in its constructor:</p>
+<pre><code class="language-csharp">private readonly IFileStorage _fileStorage;
+
+public IbanChecker(ILogger logger) {
+    // ...
+    _fileStorage = FileStorage.GetInstance();
+}
+</code></pre>
+<p>OSActions are synchronous, so the file actions call one private <code>async</code> method and block on it once with <code>.GetAwaiter().GetResult()</code>.</p>
+<h4>Which method to pick</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Use it when</th>
+<th>Used by this template</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CreateFileAsync(byte[])</code> / <code>ReadFileAsync</code></td>
+<td>The payload is small and already in memory.</td>
+<td>Not used (snippets below)</td>
+</tr>
+<tr>
+<td><code>CreateFileFromStreamAsync</code></td>
+<td>You already have a <code>Stream</code>, for example from another SDK or an HTTP call.</td>
+<td>Not used (snippets below)</td>
+</tr>
+<tr>
+<td><code>CreateFileFromWriterAsync</code></td>
+<td>You generate the content progressively, so it never needs to be fully in memory.</td>
+<td><code>BulkValidate</code></td>
+</tr>
+<tr>
+<td><code>ReadFileAsStreamAsync</code></td>
+<td>You process a large file incrementally.</td>
+<td><code>BulkValidate</code>, <code>CalculateSha256</code></td>
+</tr>
+<tr>
+<td><code>ReadFileRangeAsync</code></td>
+<td>You only need part of a file, such as a preview or a header. <code>endByte</code> is inclusive.</td>
+<td>Not used (snippets below)</td>
+</tr>
+</tbody>
+</table>
+<p><code>GetFileMetadataAsync</code> returns the metadata of a file, and is used by <code>GetFileMetadata</code>.</p>
+<h4>Snippets for the methods the actions do not call</h4>
+<p>Create a small file from a byte array and read it back:</p>
+<pre><code class="language-csharp">byte[] content = Encoding.UTF8.GetBytes("hello");
+IOSFile file = await _fileStorage.CreateFileAsync("hello.txt", "text/plain", content);
+byte[] sameContent = await _fileStorage.ReadFileAsync(file);
+</code></pre>
+<p>Create a file from a stream you already have:</p>
+<pre><code class="language-csharp">using Stream source = await httpClient.GetStreamAsync(url);
+IOSFile file = await _fileStorage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
+</code></pre>
+<p>Read only the first kilobyte of a file. <code>endByte</code> is inclusive, so bytes 0 to 1023 are 1024 bytes:</p>
+<pre><code class="language-csharp">await using Stream preview = await _fileStorage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
+using var reader = new StreamReader(preview);
+string firstKilobyte = await reader.ReadToEndAsync();
+</code></pre>
+<h4>User metadata</h4>
+<p>Every create method accepts an optional <code>additionalUserData</code> dictionary that is stored with the file. <code>BulkValidate</code> uses it to record the key of the source file and the rejected countries:</p>
+<pre><code class="language-csharp">var userData = new Dictionary&lt;string, string&gt; { ["SourceFileKey"] = ibansFile.Key };
+IOSFile output = await _fileStorage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
+</code></pre>
+<p>Read it back with <code>GetFileMetadataAsync</code>. The SDK also stores the file name in the metadata, under <code>IFileMetadata.Keys.FileName</code>:</p>
+<pre><code class="language-csharp">IFileMetadata metadata = await _fileStorage.GetFileMetadataAsync(file);
+string? fileName = metadata.GetMetadata(IFileMetadata.Keys.FileName);
+string? sourceFileKey = metadata.GetMetadata("SourceFileKey");
+</code></pre>
+<h4>Exceptions</h4>
+<p>The SDK throws typed exceptions, all deriving from <code>FileStorageException</code> (namespace <code>OutSystems.ExternalLibraries.SDK.FileStorage.Exceptions</code>):</p>
+<ul>
+<li>
+<code>FileSizeLimitExceededException</code>: Raised when a file is larger than the size limit of ODC file storage. <code>BulkValidate</code> logs a dedicated message for it, because the fix is to split the input file.</li>
+<li>
+<code>ConcurrentWriteException</code>: Signals a conflict caused by concurrent writes to the same file. This template does not handle it in code.</li>
+<li>
+<code>FileStorageException</code>: The base class. The file actions catch it, log the error together with the file key, and rethrow it so that the ODC app can handle it.</li>
+</ul>
+<p>For more details, see the <a href="https://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>.</p>
+<h3 id="unit-testing-code-that-uses-filestorage">Unit testing code that uses FileStorage</h3>
+<p>Outside ODC there is no file storage to talk to. To solve that, <code>FileStorage.GetInstance()</code> looks in the loaded assemblies for a type named <code>OutSystems.ExternalLibraries.SDK.FileStorage.Loader</code> with a method <code>static IFileStorage CreateInstance()</code>. If it finds one, it returns that instance instead of the real ODC file storage.</p>
+<p>The unit test project provides this hook in <code>FileStorageTesting/Loader.cs</code>, and it returns <code>InMemoryFileStorage</code>. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or <code>InternalsVisibleTo</code> added for testing.</p>
+<blockquote>
+<p><strong>Warning:</strong> <code>Loader</code> must only exist in test projects. If it were added to the External Library project, the published library would store files in memory instead of in ODC. The test <code>LibraryAssemblyDoesNotContainFileStorageLoader</code> in <code>IbanCheckerFileStorageTests.cs</code> fails if that happens.</p>
+</blockquote>
+<h4>Reuse it in your own tests</h4>
+<p>Copy the <code>FileStorageTesting/</code> folder into your own test project. <code>InMemoryFileStorage.cs</code> and <code>Loader.cs</code> are required, and <code>InMemoryFileStorageTests.cs</code> is optional. Only the <code>namespace</code> needs to change. <code>InMemoryFileStorage</code> implements the full <code>IFileStorage</code> interface, including the methods this template does not use (<code>CreateFileAsync</code>, <code>CreateFileFromStreamAsync</code>, <code>ReadFileAsync</code> and <code>ReadFileRangeAsync</code>), and depends only on the two OutSystems SDK packages.</p>
+<p>Reset the SDK before and after each test so that every test starts with an empty storage, and seed input files with <code>_storage.CreateFileAsync</code>:</p>
+<pre><code class="language-csharp">private InMemoryFileStorage _storage = null!;
+private IbanChecker _checker = null!;
+
+[SetUp]
+public void SetUp() {
+    FileStorage.Reset();                                        // fresh storage for each test
+    _storage = (InMemoryFileStorage)FileStorage.GetInstance();  // resolved through the Loader
+    _checker = new IbanChecker(new LoggerFactory().CreateLogger&lt;IbanChecker&gt;());
+}
+
+[TearDown]
+public void TearDown() =&gt; FileStorage.Reset();
+
+[Test]
+public async Task CalculateSha256MatchesKnownDigest() {
+    IOSFile file = await _storage.CreateFileAsync("input.txt", "text/plain", Encoding.UTF8.GetBytes("hello"));
+
+    string hash = _checker.CalculateSha256(file);
+
+    Assert.That(hash, Is.EqualTo("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824"));
+}
+</code></pre>
+<p>To test how your code handles the size limit, set <code>MaxFileSizeBytes</code>. Creating a larger file then throws <code>FileSizeLimitExceededException</code>, as in <code>BulkValidateRethrowsFileSizeLimitExceeded</code>:</p>
+<pre><code class="language-csharp">_storage.MaxFileSizeBytes = 10;
+Assert.Throws&lt;FileSizeLimitExceededException&gt;(() =&gt; _checker.BulkValidate(input));
+</code></pre>
+<p><em>(Excerpted from the <a href="https://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>, please refer to that document for additional guidance.)</em></p>
