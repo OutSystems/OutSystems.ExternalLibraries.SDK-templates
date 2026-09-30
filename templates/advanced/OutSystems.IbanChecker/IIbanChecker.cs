@@ -57,7 +57,7 @@ namespace OutSystems.IbanChecker {
         /// FileStorage SDK. This method is exposed as a server action to your ODC apps and
         /// libraries.
         /// </summary>
-        [OSAction(Description = "Validates every IBAN in a text file (one IBAN per line) and returns a CSV file with the result for each one", IconResourceName = "OutSystems.IbanChecker.resources.validate.png", ReturnName = "ValidationResultsFile", ReturnType = OSDataType.File)]
+        [OSAction(Description = "Validates every IBAN in a text file (one IBAN per line) and returns a CSV file with the result for each one", IconResourceName = "OutSystems.IbanChecker.resources.bulk_validate.png", ReturnName = "ValidationResultsFile", ReturnType = OSDataType.File)]
         IOSFile BulkValidate(
             [OSParameter(DataType = OSDataType.File, Description = "A text file with one IBAN per line")]
             IOSFile ibansFile,
@@ -69,7 +69,7 @@ namespace OutSystems.IbanChecker {
         /// the FileStorage SDK. This method is exposed as a server action to your ODC apps and
         /// libraries.
         /// </summary>
-        [OSAction(Description = "Calculates the SHA-256 hash of a file, as an uppercase hexadecimal text", ReturnName = "Sha256Hash", ReturnType = OSDataType.Text)]
+        [OSAction(Description = "Calculates the SHA-256 hash of a file, as an uppercase hexadecimal text", IconResourceName = "OutSystems.IbanChecker.resources.calculate_sha256.png", ReturnName = "Sha256Hash", ReturnType = OSDataType.Text)]
         string CalculateSha256(
             [OSParameter(DataType = OSDataType.File, Description = "The file to be hashed")]
             IOSFile file);
@@ -79,7 +79,7 @@ namespace OutSystems.IbanChecker {
         /// FileStorage SDK metadata API. This method is exposed as a server action to your ODC
         /// apps and libraries.
         /// </summary>
-        [OSAction(Description = "Returns the name, content type, size and user metadata of a file", ReturnName = "FileDetails")]
+        [OSAction(Description = "Returns the name, content type, size and user metadata of a file", IconResourceName = "OutSystems.IbanChecker.resources.get_file_metadata.png", ReturnName = "FileDetails")]
         Structures.FileDetails GetFileMetadata(
             [OSParameter(DataType = OSDataType.File, Description = "The file to be described")]
             IOSFile file);
