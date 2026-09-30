@@ -63,7 +63,7 @@
 <p><strong>IbanCheckerFileStorageTests.cs</strong>: Unit tests for <code>BulkValidate</code>, <code>CalculateSha256</code> and <code>GetFileMetadata</code>, plus guard tests that keep the test-only <code>Loader</code> out of the library.</p>
 </li>
 <li>
-<p><strong>FileStorageTesting/InMemoryFileStorage.cs</strong>: A complete in-memory implementation of <code>IFileStorage</code> that you can copy to your own test projects.</p>
+<p><strong>FileStorageTesting/InMemoryFileStorage.cs</strong>: A simplified in-memory implementation of <code>IFileStorage</code> that you can copy to your own test projects.</p>
 </li>
 <li>
 <p><strong>FileStorageTesting/Loader.cs</strong>: The test-only hook that makes <code>FileStorage.GetInstance()</code> return <code>InMemoryFileStorage</code>.</p>
@@ -170,21 +170,23 @@ string? sourceFileKey = metadata.GetMetadata("SourceFileKey");
 </ul>
 <p>For more details, see the <a href="https://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>.</p>
 <h3 id="unit-testing-code-that-uses-filestorage">Unit testing code that uses FileStorage</h3>
-<p>Outside ODC there is no file storage to talk to. To solve that, <code>FileStorage.GetInstance()</code> looks in the loaded assemblies for a type named <code>OutSystems.ExternalLibraries.SDK.FileStorage.Loader</code> with a method <code>static IFileStorage CreateInstance()</code>. If it finds one, it returns that instance instead of the real ODC file storage.</p>
-<p>The unit test project provides this hook in <code>FileStorageTesting/Loader.cs</code>, and it returns <code>InMemoryFileStorage</code>. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or <code>InternalsVisibleTo</code> added for testing.</p>
+<p>Outside ODC there is no file storage to talk to. To solve that, the unit test project provides a hook in <code>FileStorageTesting/Loader.cs</code>. With this hook, <code>FileStorage.GetInstance()</code> returns <code>InMemoryFileStorage</code>, a simplified version of <code>IFileStorage</code>, instead of the real ODC file storage. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or <code>InternalsVisibleTo</code> added for testing.</p>
 <blockquote>
 <p><strong>Warning:</strong> <code>Loader</code> must only exist in test projects. If it were added to the External Library project, the published library would store files in memory instead of in ODC. The test <code>LibraryAssemblyDoesNotContainFileStorageLoader</code> in <code>IbanCheckerFileStorageTests.cs</code> fails if that happens.</p>
 </blockquote>
 <h4>Reuse it in your own tests</h4>
 <p>Copy the <code>FileStorageTesting/</code> folder into your own test project. <code>InMemoryFileStorage.cs</code> and <code>Loader.cs</code> are required, and <code>InMemoryFileStorageTests.cs</code> is optional. Only the <code>namespace</code> needs to change. <code>InMemoryFileStorage</code> implements the full <code>IFileStorage</code> interface, including the methods this template does not use (<code>CreateFileAsync</code>, <code>CreateFileFromStreamAsync</code>, <code>ReadFileAsync</code> and <code>ReadFileRangeAsync</code>), and depends only on the two OutSystems SDK packages.</p>
+<blockquote>
+<p><strong>Warning:</strong> <code>InMemoryFileStorage</code> is a simplified version of <code>IFileStorage</code> and cannot mimic all the behavior of the ODC File Storage SDK. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.</p>
+</blockquote>
 <p>Reset the SDK before and after each test so that every test starts with an empty storage, and seed input files with <code>_storage.CreateFileAsync</code>:</p>
-<pre><code class="language-csharp">private InMemoryFileStorage _storage = null!;
+<pre><code class="language-csharp">private IFileStorage _storage = null!;
 private IbanChecker _checker = null!;
 
 [SetUp]
 public void SetUp() {
-    FileStorage.Reset();                                        // fresh storage for each test
-    _storage = (InMemoryFileStorage)FileStorage.GetInstance();  // resolved through the Loader
+    FileStorage.Reset();                    // fresh storage for each test
+    _storage = FileStorage.GetInstance();   // InMemoryFileStorage, provided by the Loader
     _checker = new IbanChecker(new LoggerFactory().CreateLogger&lt;IbanChecker&gt;());
 }
 
@@ -200,8 +202,13 @@ public async Task CalculateSha256MatchesKnownDigest() {
     Assert.That(hash, Is.EqualTo("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824"));
 }
 </code></pre>
-<p>To test how your code handles the size limit, set <code>MaxFileSizeBytes</code>. Creating a larger file then throws <code>FileSizeLimitExceededException</code>, as in <code>BulkValidateRethrowsFileSizeLimitExceeded</code>:</p>
-<pre><code class="language-csharp">_storage.MaxFileSizeBytes = 10;
+<p>To test how your code handles the size limit, set <code>MaxFileSizeBytes</code>. Creating a larger file then throws <code>FileSizeLimitExceededException</code>, as in <code>BulkValidateRethrowsFileSizeLimitExceeded</code>. <code>MaxFileSizeBytes</code> is a test-only feature of <code>InMemoryFileStorage</code> and is not part of <code>IFileStorage</code>, so set it through a small helper that does the cast:</p>
+<pre><code class="language-csharp">// Test-only feature of InMemoryFileStorage, not part of IFileStorage.
+private void SetMaxAllowedFileSizeBytes(long maxBytes) {
+    ((InMemoryFileStorage)_storage).MaxFileSizeBytes = maxBytes;
+}
+
+SetMaxAllowedFileSizeBytes(10);
 Assert.Throws&lt;FileSizeLimitExceededException&gt;(() =&gt; _checker.BulkValidate(input));
 </code></pre>
 <p><em>(Excerpted from the <a href="https://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>, please refer to that document for additional guidance.)</em></p>

@@ -19,20 +19,25 @@ public class IbanCheckerFileStorageTests {
     private const string ValidNlIban = "NL91ABNA0417164300";
     private const string ValidPtIban = "PT50000201231234567890154";
 
-    private InMemoryFileStorage _storage = null!;
+    private IFileStorage _storage = null!;
     private IbanChecker _checker = null!;
 
     [SetUp]
     public void SetUp() {
         // Drop any cached instance so every test gets a fresh, empty in-memory storage.
         FileStorage.Reset();
-        _storage = (InMemoryFileStorage)FileStorage.GetInstance();
+        _storage = FileStorage.GetInstance();
         _checker = new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>());
     }
 
     [TearDown]
     public void TearDown() {
         FileStorage.Reset();
+    }
+
+    // Test-only feature of InMemoryFileStorage, not part of IFileStorage.
+    private void SetMaxAllowedFileSizeBytes(long maxBytes) {
+        ((InMemoryFileStorage)_storage).MaxFileSizeBytes = maxBytes;
     }
 
     // Stores a text file in the in-memory storage, as an ODC app would have uploaded it.
@@ -61,6 +66,7 @@ public class IbanCheckerFileStorageTests {
         var storage = FileStorage.GetInstance();
 
         // Assert: The Loader provided the in-memory fake, and it is the cached instance.
+        Assert.That(storage, Is.InstanceOf<InMemoryFileStorage>());
         Assert.That(storage, Is.SameAs(_storage));
     }
 
@@ -189,7 +195,7 @@ public class IbanCheckerFileStorageTests {
     public void BulkValidateRethrowsFileSizeLimitExceeded() {
         // Setup: An input file and a storage that only accepts files up to 10 bytes.
         var input = SeedTextFile($"{ValidNlIban}\n");
-        _storage.MaxFileSizeBytes = 10;
+        SetMaxAllowedFileSizeBytes(10);
 
         // Act and Assert: The output does not fit, so the SDK exception reaches the caller.
         Assert.Throws<FileSizeLimitExceededException>(() => _checker.BulkValidate(input));
