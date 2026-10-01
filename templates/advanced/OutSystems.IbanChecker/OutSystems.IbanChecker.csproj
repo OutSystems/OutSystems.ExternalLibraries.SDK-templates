@@ -7,7 +7,8 @@
 
     <ItemGroup>
         <PackageReference Include="IbanNet" Version="5.8.1" />
-        <PackageReference Include="OutSystems.ExternalLibraries.SDK" Version="1.5.0" />
+        <PackageReference Include="OutSystems.ExternalLibraries.SDK" Version="1.7.0" />
+        <PackageReference Include="OutSystems.ExternalLibraries.SDK.FileStorage" Version="1.0.2" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     </ItemGroup>
 
@@ -17,6 +18,8 @@
         <EmbeddedResource Include="resources/validate.png" />
         <EmbeddedResource Include="resources/parse.png" />
         <EmbeddedResource Include="resources/try_parse.png" />
+        <EmbeddedResource Include="resources/bulk_validate.png" />
+        <EmbeddedResource Include="resources/get_file_metadata.png" />
     </ItemGroup>
 
 </Project>

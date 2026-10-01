@@ -50,5 +50,28 @@ namespace OutSystems.IbanChecker {
             Structures.Iban iban, 
             [OSParameter(DataType = OSDataType.Text, Description = "Optional format string for the output")]
             string? format = null);
+
+        /// <summary>
+        /// Validates every IBAN in a text file (one IBAN per line) and returns a CSV file with
+        /// the result for each line. Demonstrates file input and file output with the
+        /// FileStorage SDK. This method is exposed as a server action to your ODC apps and
+        /// libraries.
+        /// </summary>
+        [OSAction(Description = "Validates every IBAN in a text file (one IBAN per line) and returns a CSV file with the result for each one", IconResourceName = "OutSystems.IbanChecker.resources.bulk_validate.png", ReturnName = "ValidationResultsFile", ReturnType = OSDataType.File)]
+        IOSFile BulkValidate(
+            [OSParameter(DataType = OSDataType.File, Description = "A text file with one IBAN per line")]
+            IOSFile ibansFile,
+            [OSParameter(Description = "Optional list of country codes to be rejected during validation")]
+            IEnumerable<string>? rejectedCountries = null);
+
+        /// <summary>
+        /// Returns the name, content type, size and user metadata of a file. Demonstrates the
+        /// FileStorage SDK metadata API. This method is exposed as a server action to your ODC
+        /// apps and libraries.
+        /// </summary>
+        [OSAction(Description = "Returns the name, content type, size and user metadata of a file", IconResourceName = "OutSystems.IbanChecker.resources.get_file_metadata.png", ReturnName = "FileDetails")]
+        Structures.FileDetails GetFileMetadata(
+            [OSParameter(DataType = OSDataType.File, Description = "The file to be described")]
+            IOSFile file);
     }
 }
