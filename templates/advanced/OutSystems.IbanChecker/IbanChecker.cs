@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -211,31 +210,6 @@ namespace OutSystems.IbanChecker {
             return value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) < 0
                 ? value
                 : "\"" + value.Replace("\"", "\"\"") + "\"";
-        }
-
-        /// <summary>
-        /// The CalculateSha256 method reads a file as a stream and returns its SHA-256 hash as an
-        /// uppercase hexadecimal text.
-        /// </summary>
-        /// <param name="file">The file to be hashed.</param>
-        /// <returns>The SHA-256 hash of the file content.</returns>
-        /// <exception cref="FileStorageException">Thrown if the FileStorage SDK fails to read the file.</exception>
-        public string CalculateSha256(IOSFile file) {
-            _logger.LogInformation("Calculating SHA-256 for file {FileKey}", file.Key);
-            try {
-                // OSActions are synchronous; block once on the async FileStorage work.
-                return CalculateSha256Async(file).GetAwaiter().GetResult();
-            } catch (FileStorageException ex) {
-                _logger.LogError(ex, "FileStorage error while hashing file {FileKey}", file.Key);
-                throw;
-            }
-        }
-
-        private async Task<string> CalculateSha256Async(IOSFile file, CancellationToken cancellationToken = default) {
-            // Streams the file, so large files are hashed without loading them into memory.
-            await using var stream = await _fileStorage.ReadFileAsStreamAsync(file, cancellationToken);
-            byte[] hash = await SHA256.HashDataAsync(stream, cancellationToken);
-            return Convert.ToHexString(hash);
         }
 
         /// <summary>

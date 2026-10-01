@@ -13,7 +13,7 @@
 <p>Files in the project:</p>
 <ul>
 <li>
-<p><strong>IIbanChecker.cs</strong>: Defines a public interface named <code>IIbanChecker</code> decorated with the <code>OSInterface</code> attribute. The interface has seven methods:</p>
+<p><strong>IIbanChecker.cs</strong>: Defines a public interface named <code>IIbanChecker</code> decorated with the <code>OSInterface</code> attribute. The interface has six methods:</p>
 <ul>
 <li>
 <code>Parse</code>: Takes an IBAN string as input and returns an <code>Iban</code> struct.</li>
@@ -25,8 +25,6 @@
 <code>Format</code>: Takes an <code>Iban</code> struct and an optional format string as input and returns a formatted string representation of the IBAN.</li>
 <li>
 <code>BulkValidate</code>: Takes a text file with one IBAN per line (and an optional list of rejected countries) and returns a CSV file with the validation result of each IBAN. It shows how to use the FileStorage SDK for file input and file output.</li>
-<li>
-<code>CalculateSha256</code>: Takes a file and returns its SHA-256 hash. It shows how to read a file as a stream.</li>
 <li>
 <code>GetFileMetadata</code>: Takes a file and returns a <code>FileDetails</code> struct with its name, content type, size and user metadata. It shows the FileStorage SDK metadata API.</li>
 </ul>
@@ -60,7 +58,7 @@
 <p><strong>IbanCheckerTests.cs</strong>: Unit tests for parsing, validating and the structures.</p>
 </li>
 <li>
-<p><strong>IbanCheckerFileStorageTests.cs</strong>: Unit tests for <code>BulkValidate</code>, <code>CalculateSha256</code> and <code>GetFileMetadata</code>, plus guard tests that keep the test-only <code>Loader</code> out of the library.</p>
+<p><strong>IbanCheckerFileStorageTests.cs</strong>: Unit tests for <code>BulkValidate</code> and <code>GetFileMetadata</code>, plus guard tests that keep the test-only <code>Loader</code> out of the library.</p>
 </li>
 <li>
 <p><strong>FileStorageTesting/InMemoryFileStorage.cs</strong>: A simplified in-memory implementation of <code>IFileStorage</code> that you can copy to your own test projects.</p>
@@ -123,7 +121,7 @@ public IbanChecker(ILogger logger) {
 <tr>
 <td><code>ReadFileAsStreamAsync</code></td>
 <td>You process a large file incrementally.</td>
-<td><code>BulkValidate</code>, <code>CalculateSha256</code></td>
+<td><code>BulkValidate</code></td>
 </tr>
 <tr>
 <td><code>ReadFileRangeAsync</code></td>
@@ -194,12 +192,13 @@ public void SetUp() {
 public void TearDown() =&gt; FileStorage.Reset();
 
 [Test]
-public async Task CalculateSha256MatchesKnownDigest() {
+public async Task GetFileMetadataReturnsFileDetails() {
     IOSFile file = await _storage.CreateFileAsync("input.txt", "text/plain", Encoding.UTF8.GetBytes("hello"));
 
-    string hash = _checker.CalculateSha256(file);
+    var details = _checker.GetFileMetadata(file);
 
-    Assert.That(hash, Is.EqualTo("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824"));
+    Assert.That(details.FileName, Is.EqualTo("input.txt"));
+    Assert.That(details.Size, Is.EqualTo(5));
 }
 </code></pre>
 <p>To test how your code handles the size limit, set <code>MaxFileSizeBytes</code>. Creating a larger file then throws <code>FileSizeLimitExceededException</code>, as in <code>BulkValidateRethrowsFileSizeLimitExceeded</code>. <code>MaxFileSizeBytes</code> is a test-only feature of <code>InMemoryFileStorage</code> and is not part of <code>IFileStorage</code>, so set it through a small helper that does the cast:</p>

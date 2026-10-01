@@ -202,45 +202,15 @@ public class IbanCheckerFileStorageTests {
     }
 
     /// <summary>
-    /// Tests CalculateSha256 returns the known uppercase digest of "hello".
+    /// Tests GetFileMetadata does not swallow errors that are not FileStorageExceptions.
     /// </summary>
     [Test]
-    public void CalculateSha256MatchesKnownDigest() {
-        // Setup: A file containing "hello".
-        var file = SeedTextFile("hello");
-
-        // Act: Calculate the hash.
-        var hash = _checker.CalculateSha256(file);
-
-        // Assert: It is the known SHA-256 of "hello", in uppercase hexadecimal.
-        Assert.That(hash, Is.EqualTo("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824"));
-    }
-
-    /// <summary>
-    /// Tests CalculateSha256 of an empty file is the digest of the empty content.
-    /// </summary>
-    [Test]
-    public void CalculateSha256OfEmptyFileMatchesKnownDigest() {
-        // Setup: An empty file.
-        var file = SeedTextFile(string.Empty);
-
-        // Act: Calculate the hash.
-        var hash = _checker.CalculateSha256(file);
-
-        // Assert: It is the known SHA-256 of empty content.
-        Assert.That(hash, Is.EqualTo("E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"));
-    }
-
-    /// <summary>
-    /// Tests CalculateSha256 does not swallow errors that are not FileStorageExceptions.
-    /// </summary>
-    [Test]
-    public async Task CalculateSha256ThrowsWhenFileDoesNotExist() {
+    public async Task GetFileMetadataThrowsWhenFileDoesNotExist() {
         // Setup: A file that only exists in another storage.
         var unknownFile = await new InMemoryFileStorage().CreateFileAsync("x.txt", "text/plain", new byte[] { 1 });
 
         // Act and Assert: The fake reports the missing file.
-        Assert.Throws<FileNotFoundException>(() => _checker.CalculateSha256(unknownFile));
+        Assert.Throws<FileNotFoundException>(() => _checker.GetFileMetadata(unknownFile));
     }
 
     /// <summary>
@@ -292,7 +262,6 @@ public class IbanCheckerFileStorageTests {
     /// them as server actions to ODC apps and libraries.
     /// </summary>
     [TestCase("BulkValidate")]
-    [TestCase("CalculateSha256")]
     [TestCase("GetFileMetadata")]
     public void FileActionHasOSActionAttribute(string methodName) {
         // Setup: The interface method.
@@ -321,7 +290,6 @@ public class IbanCheckerFileStorageTests {
     /// Verifies every IOSFile parameter of the new actions is declared as a File data type.
     /// </summary>
     [TestCase("BulkValidate")]
-    [TestCase("CalculateSha256")]
     [TestCase("GetFileMetadata")]
     public void FileActionFileParametersHaveFileDataType(string methodName) {
         // Setup: The IOSFile parameters of the interface method.

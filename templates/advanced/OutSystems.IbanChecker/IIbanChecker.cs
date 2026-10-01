@@ -65,16 +65,6 @@ namespace OutSystems.IbanChecker {
             IEnumerable<string>? rejectedCountries = null);
 
         /// <summary>
-        /// Calculates the SHA-256 hash of a file. Demonstrates reading a file as a stream with
-        /// the FileStorage SDK. This method is exposed as a server action to your ODC apps and
-        /// libraries.
-        /// </summary>
-        [OSAction(Description = "Calculates the SHA-256 hash of a file, as an uppercase hexadecimal text", IconResourceName = "OutSystems.IbanChecker.resources.calculate_sha256.png", ReturnName = "Sha256Hash", ReturnType = OSDataType.Text)]
-        string CalculateSha256(
-            [OSParameter(DataType = OSDataType.File, Description = "The file to be hashed")]
-            IOSFile file);
-
-        /// <summary>
         /// Returns the name, content type, size and user metadata of a file. Demonstrates the
         /// FileStorage SDK metadata API. This method is exposed as a server action to your ODC
         /// apps and libraries.

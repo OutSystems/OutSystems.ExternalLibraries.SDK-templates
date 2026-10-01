@@ -13,14 +13,13 @@
 
     Files in the project:
 
-     * **IIbanChecker.cs**: Defines a public interface named `IIbanChecker` decorated with the `OSInterface` attribute. The interface has seven methods:
+     * **IIbanChecker.cs**: Defines a public interface named `IIbanChecker` decorated with the `OSInterface` attribute. The interface has six methods:
     
         * `Parse`: Takes an IBAN string as input and returns an `Iban` struct.
         * `TryParse`: Attempts to parse an IBAN string as input and returns a boolean success indicator along with the parsed `Iban` struct.
         * `Validate`: Takes an IBAN string as input as checks it against a specific rule and a list of rejected countries.
         * `Format`: Takes an `Iban` struct and an optional format string as input and returns a formatted string representation of the IBAN.
         * `BulkValidate`: Takes a text file with one IBAN per line (and an optional list of rejected countries) and returns a CSV file with the validation result of each IBAN. It shows how to use the FileStorage SDK for file input and file output.
-        * `CalculateSha256`: Takes a file and returns its SHA-256 hash. It shows how to read a file as a stream.
         * `GetFileMetadata`: Takes a file and returns a `FileDetails` struct with its name, content type, size and user metadata. It shows the FileStorage SDK metadata API.
 
         Each method is exposed as a server action to your ODC apps and libraries.
@@ -43,7 +42,7 @@
 
     * **IbanCheckerTests.cs**: Unit tests for parsing, validating and the structures.
 
-    * **IbanCheckerFileStorageTests.cs**: Unit tests for `BulkValidate`, `CalculateSha256` and `GetFileMetadata`, plus guard tests that keep the test-only `Loader` out of the library.
+    * **IbanCheckerFileStorageTests.cs**: Unit tests for `BulkValidate` and `GetFileMetadata`, plus guard tests that keep the test-only `Loader` out of the library.
 
     * **FileStorageTesting/InMemoryFileStorage.cs**: A simplified in-memory implementation of `IFileStorage` that you can copy to your own test projects.
 
@@ -83,7 +82,7 @@ OSActions are synchronous, so the file actions call one private `async` method a
 | `CreateFileAsync(byte[])` / `ReadFileAsync` | The payload is small and already in memory. | Not used (snippets below) |
 | `CreateFileFromStreamAsync` | You already have a `Stream`, for example from another SDK or an HTTP call. | Not used (snippets below) |
 | `CreateFileFromWriterAsync` | You generate the content progressively, so it never needs to be fully in memory. | `BulkValidate` |
-| `ReadFileAsStreamAsync` | You process a large file incrementally. | `BulkValidate`, `CalculateSha256` |
+| `ReadFileAsStreamAsync` | You process a large file incrementally. | `BulkValidate` |
 | `ReadFileRangeAsync` | You only need part of a file, such as a preview or a header. `endByte` is inclusive. | Not used (snippets below) |
 
 `GetFileMetadataAsync` returns the metadata of a file, and is used by `GetFileMetadata`.
@@ -171,12 +170,13 @@ public void SetUp() {
 public void TearDown() => FileStorage.Reset();
 
 [Test]
-public async Task CalculateSha256MatchesKnownDigest() {
+public async Task GetFileMetadataReturnsFileDetails() {
     IOSFile file = await _storage.CreateFileAsync("input.txt", "text/plain", Encoding.UTF8.GetBytes("hello"));
 
-    string hash = _checker.CalculateSha256(file);
+    var details = _checker.GetFileMetadata(file);
 
-    Assert.That(hash, Is.EqualTo("2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824"));
+    Assert.That(details.FileName, Is.EqualTo("input.txt"));
+    Assert.That(details.Size, Is.EqualTo(5));
 }
 ```
 

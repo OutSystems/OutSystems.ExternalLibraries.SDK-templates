@@ -19,7 +19,6 @@
         <EmbeddedResource Include="resources/parse.png" />
         <EmbeddedResource Include="resources/try_parse.png" />
         <EmbeddedResource Include="resources/bulk_validate.png" />
-        <EmbeddedResource Include="resources/calculate_sha256.png" />
         <EmbeddedResource Include="resources/get_file_metadata.png" />
     </ItemGroup>
 
