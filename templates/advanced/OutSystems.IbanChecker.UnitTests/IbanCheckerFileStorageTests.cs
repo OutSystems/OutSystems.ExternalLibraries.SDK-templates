@@ -10,9 +10,8 @@ using OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 namespace OutSystems.IbanChecker.UnitTests;
 
 /// <summary>
-/// Tests for the IbanChecker actions that use the FileStorage SDK. FileStorage.GetInstance()
-/// resolves to <see cref="InMemoryFileStorage"/> through the test-only Loader, so no ODC
-/// environment is needed.
+/// Tests for the IbanChecker actions that use the FileStorage SDK. Each test registers
+/// <see cref="InMemoryFileStorage"/> with FileStorage.Configure, so no ODC environment is needed.
 /// </summary>
 public class IbanCheckerFileStorageTests {
 
@@ -24,16 +23,15 @@ public class IbanCheckerFileStorageTests {
 
     [SetUp]
     public void SetUp() {
-        // Drop any cached instance so every test gets a fresh, empty in-memory storage.
+        // Reset() also clears the registered factory, so register the fake again for every test.
         FileStorage.Reset();
+        FileStorage.Configure(() => new InMemoryFileStorage());
         _storage = FileStorage.GetInstance();
         _checker = new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>());
     }
 
     [TearDown]
-    public void TearDown() {
-        FileStorage.Reset();
-    }
+    public void TearDown() => FileStorage.Reset();
 
     // Test-only feature of InMemoryFileStorage, not part of IFileStorage.
     private void SetMaxAllowedFileSizeBytes(long maxBytes) {
@@ -55,35 +53,33 @@ public class IbanCheckerFileStorageTests {
     }
 
     /// <summary>
-    /// Verifies FileStorage.GetInstance() returns the in-memory fake. If the Loader was not
-    /// discovered, the tests would otherwise silently depend on real storage.
+    /// Verifies FileStorage.GetInstance() returns the in-memory fake registered in SetUp, and
+    /// that it is the same instance on every call.
     /// </summary>
     [Test]
     public void FileStorageResolvesToInMemoryFileStorage() {
-        // Setup: SetUp already reset the SDK and asked for its instance.
+        // Setup: SetUp already registered the fake and asked for its instance.
 
         // Act: Ask the SDK for its file storage again.
         var storage = FileStorage.GetInstance();
 
-        // Assert: The Loader provided the in-memory fake, and it is the cached instance.
+        // Assert: The registered in-memory fake is returned, and it is the cached instance.
         Assert.That(storage, Is.InstanceOf<InMemoryFileStorage>());
         Assert.That(storage, Is.SameAs(_storage));
     }
 
     /// <summary>
-    /// Guard test: the test-only Loader must never end up in the External Library, otherwise the
-    /// published library would store files in memory instead of in ODC.
+    /// Verifies IbanChecker cannot be created when no file storage is registered. Outside ODC
+    /// nothing calls FileStorage.Configure for you, which is why SetUp registers the fake.
     /// </summary>
     [Test]
-    public void LibraryAssemblyDoesNotContainFileStorageLoader() {
-        // Setup: The Loader type name the FileStorage SDK looks for.
-        const string loaderTypeName = "OutSystems.ExternalLibraries.SDK.FileStorage.Loader";
+    public void IbanCheckerThrowsWhenFileStorageIsNotConfigured() {
+        // Setup: Clear the fake registered in SetUp.
+        FileStorage.Reset();
+        var logger = new LoggerFactory().CreateLogger<IbanChecker>();
 
-        // Act: Look for the Loader in the External Library assembly.
-        var loaderType = typeof(IbanChecker).Assembly.GetType(loaderTypeName);
-
-        // Assert: It is not there.
-        Assert.That(loaderType, Is.Null);
+        // Act and Assert: The constructor asks for the file storage, which is not configured.
+        Assert.Throws<InvalidOperationException>(() => new IbanChecker(logger));
     }
 
     /// <summary>
@@ -159,7 +155,8 @@ public class IbanCheckerFileStorageTests {
         var withRejected = await _storage.GetFileMetadataAsync(_checker.BulkValidate(input, new[] { "PT", "ES" }));
         var withoutRejected = await _storage.GetFileMetadataAsync(_checker.BulkValidate(input));
 
-        // Assert: RejectedCountries is only present when countries were given.
+        // Assert: RejectedCountries is only present when countries were given. Lookups ignore
+        // casing, so the PascalCase keys written by BulkValidate still match.
         Assert.Multiple(() => {
             Assert.That(withRejected.GetMetadata("SourceFileKey"), Is.EqualTo(input.Key));
             Assert.That(withRejected.GetMetadata("RejectedCountries"), Is.EqualTo("PT,ES"));
@@ -215,7 +212,7 @@ public class IbanCheckerFileStorageTests {
 
     /// <summary>
     /// Tests GetFileMetadata returns the name, content type, size and user data of a file, without
-    /// the FileName entry.
+    /// the file name entry.
     /// </summary>
     [Test]
     public void GetFileMetadataReturnsDetailsWithoutFileNameInUserData() {
@@ -225,13 +222,14 @@ public class IbanCheckerFileStorageTests {
         // Act: Get the file details.
         var details = _checker.GetFileMetadata(file);
 
-        // Assert: The details are populated and FileName is not repeated in the user data.
+        // Assert: The details are populated, the key comes back in lowercase and the file name is
+        // not repeated in the user data.
         Assert.Multiple(() => {
             Assert.That(details.FileName, Is.EqualTo("input.txt"));
             Assert.That(details.ContentType, Is.EqualTo("text/plain"));
             Assert.That(details.Size, Is.EqualTo(5));
             Assert.That(details.UserData, Has.Count.EqualTo(1));
-            Assert.That(details.UserData[0].Key, Is.EqualTo("Owner"));
+            Assert.That(details.UserData[0].Key, Is.EqualTo("owner"));
             Assert.That(details.UserData[0].Value, Is.EqualTo("tests"));
         });
     }
@@ -252,7 +250,7 @@ public class IbanCheckerFileStorageTests {
         Assert.Multiple(() => {
             Assert.That(details.FileName, Is.EqualTo("validation_results.csv"));
             Assert.That(details.ContentType, Is.EqualTo("text/csv"));
-            Assert.That(details.UserData.Select(e => e.Key), Is.EqualTo(new[] { "SourceFileKey" }));
+            Assert.That(details.UserData.Select(e => e.Key), Is.EqualTo(new[] { "sourcefilekey" }));
             Assert.That(details.UserData[0].Value, Is.EqualTo(input.Key));
         });
     }

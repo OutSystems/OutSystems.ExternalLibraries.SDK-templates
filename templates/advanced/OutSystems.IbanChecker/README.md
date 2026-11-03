@@ -5,7 +5,7 @@
 * .NET 8.0 or .NET 10.0 SDK installed.
 * An IDE that supports building .NET 8 or .NET 10 projects. For example, Visual Studio, Visual Studio Code, and Jet Brains Rider.
 * Basic knowledge of C# programming concepts.
-* To use the FileStorage SDK (see [Using the FileStorage SDK](#using-the-filestorage-sdk)), the project needs `OutSystems.ExternalLibraries.SDK` 1.7.0 or later and the `OutSystems.ExternalLibraries.SDK.FileStorage` package. Both are already referenced by this template.
+* To use the FileStorage SDK (see [Using the FileStorage SDK](#using-the-filestorage-sdk)), the project needs `OutSystems.ExternalLibraries.SDK` 1.7.0 or later and `OutSystems.ExternalLibraries.SDK.FileStorage` 1.2.1 or later. Both are already referenced by this template.
 
 ### Usage
 
@@ -42,11 +42,9 @@
 
     * **IbanCheckerTests.cs**: Unit tests for parsing, validating and the structures.
 
-    * **IbanCheckerFileStorageTests.cs**: Unit tests for `BulkValidate` and `GetFileMetadata`, plus guard tests that keep the test-only `Loader` out of the library.
+    * **IbanCheckerFileStorageTests.cs**: Unit tests for `BulkValidate` and `GetFileMetadata`, and for how the fake is registered with `FileStorage.Configure`.
 
     * **FileStorageTesting/InMemoryFileStorage.cs**: A simplified in-memory implementation of `IFileStorage` that you can copy to your own test projects.
-
-    * **FileStorageTesting/Loader.cs**: The test-only hook that makes `FileStorage.GetInstance()` return `InMemoryFileStorage`.
 
     * **FileStorageTesting/InMemoryFileStorageTests.cs**: Unit tests for `InMemoryFileStorage`.
 
@@ -129,6 +127,13 @@ string? fileName = metadata.GetMetadata(IFileMetadata.Keys.FileName);
 string? sourceFileKey = metadata.GetMetadata("SourceFileKey");
 ```
 
+The SDK applies these rules to user metadata:
+
+* Keys are case-insensitive, both when you write them and when you read them. `GetMetadata`, `TryGetMetadata` and `UserData` all ignore casing, so `GetMetadata("SourceFileKey")` and `GetMetadata("sourcefilekey")` return the same value. Keys in `additionalUserData` that differ only in casing are duplicates, and the SDK rejects them.
+* Keys come back in lowercase. `UserData` lists the entries that `BulkValidate` writes as `sourcefilekey` and `rejectedcountries`, and the file name as `filename`. That's why `GetFileMetadata` compares the key with `IFileMetadata.Keys.FileName` ignoring case, to leave the file name out of the user data it returns.
+* `FileName` is reserved. The SDK always takes the file name from the `fileName` argument and ignores a `FileName` key in `additionalUserData`.
+* Keys must be ASCII token keys and values must be printable ASCII. The metadata is limited to 1500 bytes in total, file name included. Invalid metadata throws `ArgumentException` before anything is stored.
+
 #### Exceptions
 
 The SDK throws typed exceptions, all deriving from `FileStorageException` (namespace `OutSystems.ExternalLibraries.SDK.FileStorage.Exceptions`):
@@ -141,19 +146,19 @@ For more details, see the [main README of the External Libraries SDK](https://ww
 
 ### Unit testing code that uses FileStorage
 
-Outside ODC there is no file storage to talk to. To solve that, the unit test project provides a hook in `FileStorageTesting/Loader.cs`. With this hook, `FileStorage.GetInstance()` returns `InMemoryFileStorage`, a simplified version of `IFileStorage`, instead of the real ODC file storage. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or `InternalsVisibleTo` added for testing.
+`FileStorage.GetInstance()` returns whatever was registered with `FileStorage.Configure`. In ODC, the External Library runtime registers the real file storage before any action runs. Outside ODC there is no file storage to talk to, so the unit tests register `InMemoryFileStorage`, a simplified version of `IFileStorage`, instead. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or `InternalsVisibleTo` added for testing.
 
 > [!WARNING]
-> `Loader` must only exist in test projects. If it were added to the External Library project, the published library would store files in memory instead of in ODC. The test `LibraryAssemblyDoesNotContainFileStorageLoader` in `IbanCheckerFileStorageTests.cs` fails if that happens.
+> **Never call `FileStorage.Configure` from library code**; only test projects call it. If the External Library called it, the published library would replace the ODC file storage and store files in memory instead of in ODC.
 
 #### Reuse it in your own tests
 
-Copy the `FileStorageTesting/` folder into your own test project. `InMemoryFileStorage.cs` and `Loader.cs` are required, and `InMemoryFileStorageTests.cs` is optional. Only the `namespace` needs to change. `InMemoryFileStorage` implements the full `IFileStorage` interface, including the methods this template does not use (`CreateFileAsync`, `CreateFileFromStreamAsync`, `ReadFileAsync` and `ReadFileRangeAsync`), and depends only on the two OutSystems SDK packages.
+Copy the `FileStorageTesting/` folder into your own test project. Only `InMemoryFileStorage.cs` is required, and `InMemoryFileStorageTests.cs` is optional. Only the `namespace` needs to change. `InMemoryFileStorage` implements the full `IFileStorage` interface, including the methods this template does not use (`CreateFileAsync`, `CreateFileFromStreamAsync`, `ReadFileAsync` and `ReadFileRangeAsync`), and depends only on the two OutSystems SDK packages.
 
 > [!WARNING]
-> `InMemoryFileStorage` is a simplified version of `IFileStorage` and cannot mimic all the behavior of the ODC File Storage SDK. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.
+> `InMemoryFileStorage` is a simplified version of `IFileStorage`. It does not validate metadata and cannot mimic all the behavior of the ODC File Storage SDK. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.
 
-Reset the SDK before and after each test so that every test starts with an empty storage, and seed input files with `_storage.CreateFileAsync`:
+Register the fake in `SetUp` and reset the SDK before and after each test, so that every test starts with an empty storage. `FileStorage.Reset()` also clears the registered factory, so call `FileStorage.Configure` in every `SetUp`. Seed input files with `_storage.CreateFileAsync`:
 
 ```csharp
 private IFileStorage _storage = null!;
@@ -161,8 +166,10 @@ private IbanChecker _checker = null!;
 
 [SetUp]
 public void SetUp() {
-    FileStorage.Reset();                    // fresh storage for each test
-    _storage = FileStorage.GetInstance();   // InMemoryFileStorage, provided by the Loader
+    // Reset() also clears the registered factory, so register the fake again for every test.
+    FileStorage.Reset();
+    FileStorage.Configure(() => new InMemoryFileStorage());
+    _storage = FileStorage.GetInstance();
     _checker = new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>());
 }
 
@@ -179,6 +186,8 @@ public async Task GetFileMetadataReturnsFileDetails() {
     Assert.That(details.Size, Is.EqualTo(5));
 }
 ```
+
+`FileStorage` is process-wide state, so don't mark fixtures that use it as `[Parallelizable]`.
 
 To test how your code handles the size limit, set `MaxFileSizeBytes`. Creating a larger file then throws `FileSizeLimitExceededException`, as in `BulkValidateRethrowsFileSizeLimitExceeded`. `MaxFileSizeBytes` is a test-only feature of `InMemoryFileStorage` and is not part of `IFileStorage`, so set it through a small helper that does the cast:
 

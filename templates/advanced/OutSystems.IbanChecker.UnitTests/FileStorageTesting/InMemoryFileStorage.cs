@@ -8,7 +8,8 @@ namespace OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 /// <summary>
 /// A complete, in-memory implementation of <see cref="IFileStorage"/> for unit tests.
 /// Files live in a dictionary for the lifetime of the instance, so no ODC environment is needed.
-/// Copy this file (and Loader.cs) into your own test project to test any FileStorage-based code.
+/// Register it in your test SetUp with <c>FileStorage.Configure(() => new InMemoryFileStorage())</c>,
+/// and copy this file into your own test project to test any FileStorage-based code.
 /// </summary>
 public sealed class InMemoryFileStorage : IFileStorage {
 
@@ -83,11 +84,14 @@ public sealed class InMemoryFileStorage : IFileStorage {
             throw new FileSizeLimitExceededException(limit);
         }
 
-        // Like the real SDK, the file name is stored as user metadata under Keys.FileName.
-        var userData = additionalUserData is null
-            ? new Dictionary<string, string>()
-            : new Dictionary<string, string>(additionalUserData);
-        userData[IFileMetadata.Keys.FileName] = fileName;
+        // Like the real SDK, metadata keys are stored in lowercase and matched case-insensitively,
+        // and the file name is stored last under Keys.FileName, so a FileName key in
+        // additionalUserData is ignored. Unlike the SDK, metadata is not validated.
+        var userData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in additionalUserData ?? new Dictionary<string, string>()) {
+            userData[key.ToLowerInvariant()] = value;
+        }
+        userData[IFileMetadata.Keys.FileName.ToLowerInvariant()] = fileName;
 
         var file = new InMemoryFile(Guid.NewGuid().ToString("N"), "1", contentType, content.LongLength);
         _files[file.Key] = new StoredFile(content, userData);

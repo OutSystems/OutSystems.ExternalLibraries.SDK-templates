@@ -235,7 +235,9 @@ namespace OutSystems.IbanChecker {
             var metadata = await _fileStorage.GetFileMetadataAsync(file, cancellationToken);
             var details = new Structures.FileDetails(
                 metadata.GetMetadata(IFileMetadata.Keys.FileName) ?? string.Empty, file.ContentType, file.Size);
-            foreach (var entry in metadata.UserData.Where(e => e.Key != IFileMetadata.Keys.FileName)) {
+            // Metadata keys are case-insensitive and come back in lowercase, so compare ignoring case.
+            foreach (var entry in metadata.UserData.Where(
+                         e => !string.Equals(e.Key, IFileMetadata.Keys.FileName, StringComparison.OrdinalIgnoreCase))) {
                 details.UserData.Add(new Structures.MetadataEntry(entry.Key, entry.Value));
             }
             return details;
