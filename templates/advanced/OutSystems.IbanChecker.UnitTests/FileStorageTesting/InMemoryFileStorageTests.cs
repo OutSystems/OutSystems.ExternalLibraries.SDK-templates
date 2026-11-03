@@ -237,24 +237,4 @@ public class InMemoryFileStorageTests {
         // Act and Assert: Reading the unknown file fails.
         Assert.ThrowsAsync<FileNotFoundException>(() => storage.ReadFileAsync(unknownFile));
     }
-
-    /// <summary>
-    /// Verifies FileStorage.GetInstance() returns the in-memory fake once it is registered with
-    /// FileStorage.Configure, as the test fixtures do in their SetUp.
-    /// </summary>
-    [Test]
-    public void FileStorageGetInstanceResolvesToInMemoryFileStorage() {
-        // Setup: Register the in-memory fake.
-        FileStorage.Reset();
-        FileStorage.Configure(() => new InMemoryFileStorage());
-        try {
-            // Act: Ask the SDK for its file storage.
-            var storage = FileStorage.GetInstance();
-
-            // Assert: The registered in-memory fake is returned.
-            Assert.That(storage, Is.TypeOf<InMemoryFileStorage>());
-        } finally {
-            FileStorage.Reset();
-        }
-    }
 }

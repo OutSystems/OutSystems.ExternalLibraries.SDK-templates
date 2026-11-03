@@ -13,30 +13,27 @@ namespace OutSystems.IbanChecker.UnitTests;
 /// Tests for the IbanChecker actions that use the FileStorage SDK. Each test registers
 /// <see cref="InMemoryFileStorage"/> with FileStorage.Configure, so no ODC environment is needed.
 /// </summary>
+// FileStorage is process-wide static state, so these tests must not run in parallel.
+[NonParallelizable]
 public class IbanCheckerFileStorageTests {
 
     private const string ValidNlIban = "NL91ABNA0417164300";
     private const string ValidPtIban = "PT50000201231234567890154";
 
-    private IFileStorage _storage = null!;
+    private InMemoryFileStorage _storage = null!;
     private IbanChecker _checker = null!;
 
     [SetUp]
     public void SetUp() {
-        // Reset() also clears the registered factory, so register the fake again for every test.
+        // Reset() first: Configure alone doesn't replace an instance that is already cached.
         FileStorage.Reset();
-        FileStorage.Configure(() => new InMemoryFileStorage());
-        _storage = FileStorage.GetInstance();
+        _storage = new InMemoryFileStorage();
+        FileStorage.Configure(() => _storage);
         _checker = new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>());
     }
 
     [TearDown]
     public void TearDown() => FileStorage.Reset();
-
-    // Test-only feature of InMemoryFileStorage, not part of IFileStorage.
-    private void SetMaxAllowedFileSizeBytes(long maxBytes) {
-        ((InMemoryFileStorage)_storage).MaxFileSizeBytes = maxBytes;
-    }
 
     // Stores a text file in the in-memory storage, as an ODC app would have uploaded it.
     private IOSFile SeedTextFile(string content, IDictionary<string, string>? userData = null) {
@@ -53,33 +50,33 @@ public class IbanCheckerFileStorageTests {
     }
 
     /// <summary>
-    /// Verifies FileStorage.GetInstance() returns the in-memory fake registered in SetUp, and
-    /// that it is the same instance on every call.
+    /// Verifies FileStorage.GetInstance() returns the in-memory fake registered in SetUp, so the
+    /// files seeded through the fake are the ones the IbanChecker actions read.
     /// </summary>
     [Test]
     public void FileStorageResolvesToInMemoryFileStorage() {
-        // Setup: SetUp already registered the fake and asked for its instance.
+        // Setup: SetUp already registered the fake.
 
-        // Act: Ask the SDK for its file storage again.
+        // Act: Ask the SDK for its file storage.
         var storage = FileStorage.GetInstance();
 
-        // Assert: The registered in-memory fake is returned, and it is the cached instance.
-        Assert.That(storage, Is.InstanceOf<InMemoryFileStorage>());
+        // Assert: The registered in-memory fake is returned.
         Assert.That(storage, Is.SameAs(_storage));
     }
 
     /// <summary>
-    /// Verifies IbanChecker cannot be created when no file storage is registered. Outside ODC
-    /// nothing calls FileStorage.Configure for you, which is why SetUp registers the fake.
+    /// Verifies the file actions fail when no file storage is registered. This also guards that
+    /// the library never calls FileStorage.Configure itself: in ODC that would replace the ODC
+    /// file storage.
     /// </summary>
     [Test]
-    public void IbanCheckerThrowsWhenFileStorageIsNotConfigured() {
-        // Setup: Clear the fake registered in SetUp.
+    public void GetFileMetadataThrowsWhenFileStorageIsNotConfigured() {
+        // Setup: Seed a file, then clear the fake registered in SetUp.
+        var file = SeedTextFile("hello");
         FileStorage.Reset();
-        var logger = new LoggerFactory().CreateLogger<IbanChecker>();
 
-        // Act and Assert: The constructor asks for the file storage, which is not configured.
-        Assert.Throws<InvalidOperationException>(() => new IbanChecker(logger));
+        // Act and Assert: The action asks for the file storage, which is not configured.
+        Assert.Throws<InvalidOperationException>(() => _checker.GetFileMetadata(file));
     }
 
     /// <summary>
@@ -155,13 +152,15 @@ public class IbanCheckerFileStorageTests {
         var withRejected = await _storage.GetFileMetadataAsync(_checker.BulkValidate(input, new[] { "PT", "ES" }));
         var withoutRejected = await _storage.GetFileMetadataAsync(_checker.BulkValidate(input));
 
-        // Assert: RejectedCountries is only present when countries were given. Lookups ignore
-        // casing, so the PascalCase keys written by BulkValidate still match.
+        // Assert: The rejected countries are only present when countries were given. Every key
+        // reads back in lowercase, and lookups ignore casing, so "RejectedCountries" still matches.
         Assert.Multiple(() => {
-            Assert.That(withRejected.GetMetadata("SourceFileKey"), Is.EqualTo(input.Key));
+            Assert.That(withRejected.UserData.Keys,
+                Is.EquivalentTo(new[] { "sourcefilekey", "rejectedcountries", "filename" }));
+            Assert.That(withRejected.GetMetadata("sourcefilekey"), Is.EqualTo(input.Key));
             Assert.That(withRejected.GetMetadata("RejectedCountries"), Is.EqualTo("PT,ES"));
-            Assert.That(withoutRejected.GetMetadata("SourceFileKey"), Is.EqualTo(input.Key));
-            Assert.That(withoutRejected.UserData.ContainsKey("RejectedCountries"), Is.False);
+            Assert.That(withoutRejected.GetMetadata("sourcefilekey"), Is.EqualTo(input.Key));
+            Assert.That(withoutRejected.UserData.ContainsKey("rejectedcountries"), Is.False);
         });
     }
 
@@ -192,7 +191,7 @@ public class IbanCheckerFileStorageTests {
     public void BulkValidateRethrowsFileSizeLimitExceeded() {
         // Setup: An input file and a storage that only accepts files up to 10 bytes.
         var input = SeedTextFile($"{ValidNlIban}\n");
-        SetMaxAllowedFileSizeBytes(10);
+        _storage.MaxFileSizeBytes = 10;
 
         // Act and Assert: The output does not fit, so the SDK exception reaches the caller.
         Assert.Throws<FileSizeLimitExceededException>(() => _checker.BulkValidate(input));

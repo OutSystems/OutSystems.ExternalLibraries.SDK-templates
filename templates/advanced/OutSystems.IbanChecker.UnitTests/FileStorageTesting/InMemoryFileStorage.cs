@@ -8,8 +8,9 @@ namespace OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 /// <summary>
 /// A complete, in-memory implementation of <see cref="IFileStorage"/> for unit tests.
 /// Files live in a dictionary for the lifetime of the instance, so no ODC environment is needed.
-/// Register it in your test SetUp with <c>FileStorage.Configure(() => new InMemoryFileStorage())</c>,
-/// and copy this file into your own test project to test any FileStorage-based code.
+/// In your test SetUp, call <c>FileStorage.Reset()</c> and then register a new instance with
+/// <c>FileStorage.Configure(() => storage)</c>. Copy this file into your own test project to test any
+/// FileStorage-based code.
 /// </summary>
 public sealed class InMemoryFileStorage : IFileStorage {
 
@@ -86,7 +87,8 @@ public sealed class InMemoryFileStorage : IFileStorage {
 
         // Like the real SDK, metadata keys are stored in lowercase and matched case-insensitively,
         // and the file name is stored last under Keys.FileName, so a FileName key in
-        // additionalUserData is ignored. Unlike the SDK, metadata is not validated.
+        // additionalUserData is ignored. Unlike the SDK, metadata is not validated: keys that differ
+        // only in casing are merged here, where the SDK throws an ArgumentException.
         var userData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in additionalUserData ?? new Dictionary<string, string>()) {
             userData[key.ToLowerInvariant()] = value;

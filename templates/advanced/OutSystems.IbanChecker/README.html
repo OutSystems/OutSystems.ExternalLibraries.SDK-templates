@@ -31,7 +31,7 @@
 <p>Each method is exposed as a server action to your ODC apps and libraries.</p>
 </li>
 <li>
-<p><strong>IbanChecker.cs</strong>: Defines a public class named <code>IbanChecker</code> that implements the <code>IIbanChecker</code> interface. The class is a convenient wrapper for the <code>IbanNet</code> library, an <a href="https://github.com/skwasjer/IbanNet">open-source library</a> that provides functionality for parsing and validating IBANs. The class contains private fields <code>_parser</code> and <code>_validator</code>, which are instances of the <code>IIbanParser</code> and <code>IIbanValidator</code> interfaces. The constructor initializes these instances for use in the class methods. It also gets the FileStorage SDK instance, kept in the private field <code>_fileStorage</code>, that the file actions use.</p>
+<p><strong>IbanChecker.cs</strong>: Defines a public class named <code>IbanChecker</code> that implements the <code>IIbanChecker</code> interface. The class is a convenient wrapper for the <code>IbanNet</code> library, an <a href="https://github.com/skwasjer/IbanNet">open-source library</a> that provides functionality for parsing and validating IBANs. The class contains private fields <code>_parser</code> and <code>_validator</code>, which are instances of the <code>IIbanParser</code> and <code>IIbanValidator</code> interfaces. The constructor initializes these instances for use in the class methods. The file actions get the FileStorage SDK instance from the private property <code>Storage</code>.</p>
 </li>
 <li>
 <p><strong>Structures/Iban.cs</strong> Defines a struct named <code>Iban</code>, decorated with the <code>OSStructure</code> attribute. The struct has four public properties: <code>Country</code>, <code>Bban</code>, <code>BankIdentifier</code>, and <code>BranchIdentifier</code>. It's exposed as a structure to your ODC apps and libraries.</p>
@@ -81,13 +81,8 @@
 </ol>
 <h3 id="using-the-filestorage-sdk">Using the FileStorage SDK</h3>
 <p>External libraries receive and return files as <code>IOSFile</code> handles. The FileStorage SDK (<code>OutSystems.ExternalLibraries.SDK.FileStorage</code>) reads and creates the content of those files in ODC file storage. The same code runs on ODC Cloud and ODC Self-Hosted.</p>
-<p>Get the SDK instance with <code>FileStorage.GetInstance()</code>. <code>IbanChecker</code> does this once, in its constructor:</p>
-<pre><code class="language-csharp">private readonly IFileStorage _fileStorage;
-
-public IbanChecker(ILogger logger) {
-    // ...
-    _fileStorage = FileStorage.GetInstance();
-}
+<p>Get the SDK instance with <code>FileStorage.GetInstance()</code>. <code>IbanChecker</code> does this when a file action runs, not in its constructor, so the actions that don't use files work without file storage:</p>
+<pre><code class="language-csharp">private static IFileStorage Storage =&gt; FileStorage.GetInstance();
 </code></pre>
 <p>OSActions are synchronous, so the file actions call one private <code>async</code> method and block on it once with <code>.GetAwaiter().GetResult()</code>.</p>
 <h4>Which method to pick</h4>
@@ -131,37 +126,35 @@ public IbanChecker(ILogger logger) {
 <h4>Snippets for the methods the actions do not call</h4>
 <p>Create a small file from a byte array and read it back:</p>
 <pre><code class="language-csharp">byte[] content = Encoding.UTF8.GetBytes("hello");
-IOSFile file = await _fileStorage.CreateFileAsync("hello.txt", "text/plain", content);
-byte[] sameContent = await _fileStorage.ReadFileAsync(file);
+IOSFile file = await Storage.CreateFileAsync("hello.txt", "text/plain", content);
+byte[] sameContent = await Storage.ReadFileAsync(file);
 </code></pre>
 <p>Create a file from a stream you already have:</p>
 <pre><code class="language-csharp">using Stream source = await httpClient.GetStreamAsync(url);
-IOSFile file = await _fileStorage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
+IOSFile file = await Storage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
 </code></pre>
 <p>Read only the first kilobyte of a file. <code>endByte</code> is inclusive, so bytes 0 to 1023 are 1024 bytes:</p>
-<pre><code class="language-csharp">await using Stream preview = await _fileStorage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
+<pre><code class="language-csharp">await using Stream preview = await Storage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
 using var reader = new StreamReader(preview);
 string firstKilobyte = await reader.ReadToEndAsync();
 </code></pre>
 <h4>User metadata</h4>
 <p>Every create method accepts an optional <code>additionalUserData</code> dictionary that is stored with the file. <code>BulkValidate</code> uses it to record the key of the source file and the rejected countries:</p>
-<pre><code class="language-csharp">var userData = new Dictionary&lt;string, string&gt; { ["SourceFileKey"] = ibansFile.Key };
-IOSFile output = await _fileStorage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
+<pre><code class="language-csharp">var userData = new Dictionary&lt;string, string&gt; { ["sourcefilekey"] = ibansFile.Key };
+IOSFile output = await Storage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
 </code></pre>
 <p>Read it back with <code>GetFileMetadataAsync</code>. The SDK also stores the file name in the metadata, under <code>IFileMetadata.Keys.FileName</code>:</p>
-<pre><code class="language-csharp">IFileMetadata metadata = await _fileStorage.GetFileMetadataAsync(file);
+<pre><code class="language-csharp">IFileMetadata metadata = await Storage.GetFileMetadataAsync(file);
 string? fileName = metadata.GetMetadata(IFileMetadata.Keys.FileName);
-string? sourceFileKey = metadata.GetMetadata("SourceFileKey");
+string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 </code></pre>
 <p>The SDK applies these rules to user metadata:</p>
 <ul>
-<li>Keys are case-insensitive, both when you write them and when you read them. <code>GetMetadata</code>, <code>TryGetMetadata</code> and <code>UserData</code> all ignore casing, so <code>GetMetadata("SourceFileKey")</code> and <code>GetMetadata("sourcefilekey")</code> return the same value. Keys in <code>additionalUserData</code> that differ only in casing are duplicates, and the SDK rejects them.</li>
-<li>Keys come back in lowercase. <code>UserData</code> lists the entries that <code>BulkValidate</code> writes as <code>sourcefilekey</code> and <code>rejectedcountries</code>, and the file name as <code>filename</code>. That's why <code>GetFileMetadata</code> compares the key with <code>IFileMetadata.Keys.FileName</code> ignoring case, to leave the file name out of the user data it returns.</li>
-<li><code>FileName</code> is reserved. The SDK always takes the file name from the <code>fileName</code> argument and ignores a <code>FileName</code> key in <code>additionalUserData</code>.</li>
-<li>Keys must be ASCII token keys and values must be printable ASCII. The metadata is limited to 1500 bytes in total, file name included. Invalid metadata throws <code>ArgumentException</code> before anything is stored.</li>
+<li>Keys are case-insensitive and always read back in lowercase. <code>BulkValidate</code> writes <code>sourcefilekey</code> in lowercase and <code>RejectedCountries</code> in mixed case, and <code>UserData</code> lists them as <code>sourcefilekey</code> and <code>rejectedcountries</code>, with the file name as <code>filename</code>. Lookups ignore casing, so <code>GetMetadata("RejectedCountries")</code> still finds the <code>rejectedcountries</code> entry. That's why <code>GetFileMetadata</code> compares the key with <code>IFileMetadata.Keys.FileName</code> ignoring case, to leave the file name out of the user data it returns. Keys that differ only in casing are rejected.</li>
+<li>Keys may only contain ASCII letters, digits and a few symbols such as <code>-</code>, <code>_</code> and <code>.</code> (no spaces). Values, and the file name, must be printable ASCII. The metadata, file name included, is limited to about 1500 bytes. Invalid metadata throws <code>ArgumentException</code> before anything is stored.</li>
 </ul>
 <h4>Exceptions</h4>
-<p>The SDK throws typed exceptions, all deriving from <code>FileStorageException</code> (namespace <code>OutSystems.ExternalLibraries.SDK.FileStorage.Exceptions</code>):</p>
+<p>Storage failures are raised as typed exceptions deriving from <code>FileStorageException</code> (namespace <code>OutSystems.ExternalLibraries.SDK.FileStorage.Exceptions</code>):</p>
 <ul>
 <li>
 <code>FileSizeLimitExceededException</code>: Raised when a file is larger than the size limit of ODC file storage. <code>BulkValidate</code> logs a dedicated message for it, because the fix is to split the input file.</li>
@@ -170,6 +163,7 @@ string? sourceFileKey = metadata.GetMetadata("SourceFileKey");
 <li>
 <code>FileStorageException</code>: The base class. The file actions catch it, log the error together with the file key, and rethrow it so that the ODC app can handle it.</li>
 </ul>
+<p><code>BulkValidate</code> can also throw an <code>ArgumentException</code>, when the rejected countries can't be stored as file metadata (see the rules above). The file actions don't catch it.</p>
 <p>For more details, see the <a href="https://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>.</p>
 <h3 id="unit-testing-code-that-uses-filestorage">Unit testing code that uses FileStorage</h3>
 <p><code>FileStorage.GetInstance()</code> returns whatever was registered with <code>FileStorage.Configure</code>. In ODC, the External Library runtime registers the real file storage before any action runs. Outside ODC there is no file storage to talk to, so the unit tests register <code>InMemoryFileStorage</code>, a simplified version of <code>IFileStorage</code>, instead. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or <code>InternalsVisibleTo</code> added for testing.</p>
@@ -181,16 +175,16 @@ string? sourceFileKey = metadata.GetMetadata("SourceFileKey");
 <blockquote>
 <p><strong>Warning:</strong> <code>InMemoryFileStorage</code> is a simplified version of <code>IFileStorage</code>. It does not validate metadata and cannot mimic all the behavior of the ODC File Storage SDK. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.</p>
 </blockquote>
-<p>Register the fake in <code>SetUp</code> and reset the SDK before and after each test, so that every test starts with an empty storage. <code>FileStorage.Reset()</code> also clears the registered factory, so call <code>FileStorage.Configure</code> in every <code>SetUp</code>. Seed input files with <code>_storage.CreateFileAsync</code>:</p>
-<pre><code class="language-csharp">private IFileStorage _storage = null!;
+<p>In every <code>SetUp</code>, call <code>FileStorage.Reset()</code> and then register a new fake with <code>FileStorage.Configure</code>, and call <code>Reset()</code> again in <code>TearDown</code>. <code>Reset()</code> drops both the cached instance and the registered factory, so every test starts with a new, empty storage. Seed input files with <code>_storage.CreateFileAsync</code>:</p>
+<pre><code class="language-csharp">private InMemoryFileStorage _storage = null!;
 private IbanChecker _checker = null!;
 
 [SetUp]
 public void SetUp() {
-    // Reset() also clears the registered factory, so register the fake again for every test.
+    // Reset() first: Configure alone doesn't replace an instance that is already cached.
     FileStorage.Reset();
-    FileStorage.Configure(() =&gt; new InMemoryFileStorage());
-    _storage = FileStorage.GetInstance();
+    _storage = new InMemoryFileStorage();
+    FileStorage.Configure(() =&gt; _storage);
     _checker = new IbanChecker(new LoggerFactory().CreateLogger&lt;IbanChecker&gt;());
 }
 
@@ -207,14 +201,9 @@ public async Task GetFileMetadataReturnsFileDetails() {
     Assert.That(details.Size, Is.EqualTo(5));
 }
 </code></pre>
-<p><code>FileStorage</code> is process-wide state, so don't mark fixtures that use it as <code>[Parallelizable]</code>.</p>
-<p>To test how your code handles the size limit, set <code>MaxFileSizeBytes</code>. Creating a larger file then throws <code>FileSizeLimitExceededException</code>, as in <code>BulkValidateRethrowsFileSizeLimitExceeded</code>. <code>MaxFileSizeBytes</code> is a test-only feature of <code>InMemoryFileStorage</code> and is not part of <code>IFileStorage</code>, so set it through a small helper that does the cast:</p>
-<pre><code class="language-csharp">// Test-only feature of InMemoryFileStorage, not part of IFileStorage.
-private void SetMaxAllowedFileSizeBytes(long maxBytes) {
-    ((InMemoryFileStorage)_storage).MaxFileSizeBytes = maxBytes;
-}
-
-SetMaxAllowedFileSizeBytes(10);
+<p><code>FileStorage</code> is process-wide state, so mark every fixture that uses it <code>[NonParallelizable]</code>, as <code>IbanCheckerFileStorageTests</code> does. That also overrides an assembly-level <code>[Parallelizable]</code> setting.</p>
+<p>To test how your code handles the size limit, set <code>MaxFileSizeBytes</code>. Creating a larger file then throws <code>FileSizeLimitExceededException</code>, as in <code>BulkValidateRethrowsFileSizeLimitExceeded</code>. <code>MaxFileSizeBytes</code> is a test-only feature of <code>InMemoryFileStorage</code> and is not part of <code>IFileStorage</code>, which is why the fixture keeps the fake in a field of type <code>InMemoryFileStorage</code>:</p>
+<pre><code class="language-csharp">_storage.MaxFileSizeBytes = 10;
 Assert.Throws&lt;FileSizeLimitExceededException&gt;(() =&gt; _checker.BulkValidate(input));
 </code></pre>
 <p><em>(Excerpted from the <a href="https://www.outsystems.com/goto/external-logic-readme">main README of the External Libraries SDK</a>, please refer to that document for additional guidance.)</em></p>

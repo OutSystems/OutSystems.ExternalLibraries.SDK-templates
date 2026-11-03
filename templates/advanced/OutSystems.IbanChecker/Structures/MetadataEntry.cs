@@ -8,9 +8,9 @@ namespace OutSystems.IbanChecker.Structures {
     [OSStructure(Description = "A single key/value pair of user metadata attached to a file.")]
     public struct MetadataEntry {
 
-        [OSStructureField(DataType = OSDataType.Text, Description = "The metadata key.", IsMandatory = true)]
+        [OSStructureField(DataType = OSDataType.Text, Description = "The metadata key, in lowercase.", IsMandatory = true)]
         /// <summary>
-        /// The metadata key.
+        /// The metadata key, in lowercase.
         /// </summary>
         public string Key;
 

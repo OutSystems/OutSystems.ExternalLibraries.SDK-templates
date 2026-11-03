@@ -38,22 +38,21 @@ namespace OutSystems.IbanChecker {
         private readonly ILogger _logger;
 
         /// <summary>
-        /// The FileStorage SDK instance used to read and create files in ODC file storage.
+        /// The FileStorage SDK instance used to read and create files in ODC file storage. It is
+        /// resolved when a file action runs, not when the class is created, so the actions that do
+        /// not use files work without file storage.
         /// </summary>
-        private readonly IFileStorage _fileStorage;
+        private static IFileStorage Storage => FileStorage.GetInstance();
 
         /// <summary>
         /// The constructor initializes the IbanChecker class with the specified logger and creates new instances
-        /// of the IbanParser and IbanValidator classes from the IbanNet library. It also gets the FileStorage
-        /// SDK instance used by the file actions.
+        /// of the IbanParser and IbanValidator classes from the IbanNet library.
         /// </summary>
         /// <param name="logger">The logger instance used for logging operations within the IbanChecker.</param>
         public IbanChecker(ILogger logger) {
             _validator = new IbanValidator();
             _parser = new IbanParser(_validator);
             _logger = logger;
-            // The recommended way to access ODC file storage from an External Library.
-            _fileStorage = FileStorage.GetInstance();
         }
 
         /// <summary>
@@ -156,6 +155,8 @@ namespace OutSystems.IbanChecker {
         /// <param name="rejectedCountries">An optional list of country codes to be rejected during validation.</param>
         /// <returns>The CSV file with the validation results.</returns>
         /// <exception cref="FileStorageException">Thrown if the FileStorage SDK fails to read or create a file.</exception>
+        /// <exception cref="ArgumentException">Thrown if the rejected countries cannot be stored as file metadata
+        /// (characters that are not printable ASCII, or more than the metadata size limit).</exception>
         public IOSFile BulkValidate(IOSFile ibansFile, IEnumerable<string>? rejectedCountries = null) {
             _logger.LogInformation("Bulk validating IBANs from file {FileKey}", ibansFile.Key);
             try {
@@ -174,14 +175,16 @@ namespace OutSystems.IbanChecker {
             CancellationToken cancellationToken = default) {
             var validator = GetValidator(rejectedCountries);
             // User metadata is stored with the new file and can be read back with GetFileMetadata.
-            var userData = new Dictionary<string, string> { ["SourceFileKey"] = ibansFile.Key };
+            // Keys always read back in lowercase, so "RejectedCountries" comes back as "rejectedcountries".
+            var userData = new Dictionary<string, string> { ["sourcefilekey"] = ibansFile.Key };
             if (rejectedCountries != null && rejectedCountries.Any()) {
                 userData["RejectedCountries"] = string.Join(",", rejectedCountries);
             }
 
-            return _fileStorage.CreateFileFromWriterAsync("validation_results.csv", "text/csv",
+            var storage = Storage;
+            return storage.CreateFileFromWriterAsync("validation_results.csv", "text/csv",
                 async (destination, token) => {
-                    await using var source = await _fileStorage.ReadFileAsStreamAsync(ibansFile, token);
+                    await using var source = await storage.ReadFileAsStreamAsync(ibansFile, token);
                     using var reader = new StreamReader(source);
                     // The FileStorage SDK owns the destination stream, so leave it open.
                     await using var writer = new StreamWriter(destination, new UTF8Encoding(false), leaveOpen: true);
@@ -232,7 +235,7 @@ namespace OutSystems.IbanChecker {
         }
 
         private async Task<Structures.FileDetails> GetFileMetadataAsync(IOSFile file, CancellationToken cancellationToken = default) {
-            var metadata = await _fileStorage.GetFileMetadataAsync(file, cancellationToken);
+            var metadata = await Storage.GetFileMetadataAsync(file, cancellationToken);
             var details = new Structures.FileDetails(
                 metadata.GetMetadata(IFileMetadata.Keys.FileName) ?? string.Empty, file.ContentType, file.Size);
             // Metadata keys are case-insensitive and come back in lowercase, so compare ignoring case.
