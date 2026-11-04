@@ -157,8 +157,7 @@ namespace OutSystems.IbanChecker {
         /// <param name="rejectedCountries">An optional list of country codes to be rejected during validation.</param>
         /// <returns>The CSV file with the validation results.</returns>
         /// <exception cref="FileStorageException">Thrown if the FileStorage SDK fails to read or create a file.</exception>
-        /// <exception cref="ArgumentException">Thrown if the rejected countries cannot be stored as file metadata
-        /// (characters that are not printable ASCII, or more than the metadata size limit).</exception>
+        /// <exception cref="ArgumentException">Thrown if the rejected countries are not valid file metadata.</exception>
         public IOSFile BulkValidate(IOSFile ibansFile, IEnumerable<string>? rejectedCountries = null) {
             _logger.LogInformation("Bulk validating IBANs from file {FileKey}", ibansFile.Key);
             try {

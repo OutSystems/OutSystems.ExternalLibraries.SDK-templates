@@ -133,7 +133,7 @@ string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 The SDK applies these rules to user metadata:
 
 * Keys are case-insensitive and always read back in lowercase. `BulkValidate` writes `sourcefilekey` in lowercase and `RejectedCountries` in mixed case, and `UserData` lists them as `sourcefilekey` and `rejectedcountries`, with the file name as `filename`. Lookups ignore casing, so `GetMetadata("RejectedCountries")` still finds the `rejectedcountries` entry. That's why `GetFileMetadata` compares the key with `IFileMetadata.Keys.FileName` ignoring case, to leave the file name out of the user data it returns. Keys that differ only in casing are rejected.
-* Keys may only contain ASCII letters, digits and a few symbols such as `-`, `_` and `.` (no spaces). Values, and the file name, must be printable ASCII. The metadata, file name included, is limited to about 1500 bytes. Invalid metadata throws `ArgumentException` before anything is stored.
+* Invalid metadata throws `ArgumentException` before anything is stored. For the full list of rules, such as the allowed characters and the size limit, see the [metadata rules](https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99).
 
 #### Exceptions
 

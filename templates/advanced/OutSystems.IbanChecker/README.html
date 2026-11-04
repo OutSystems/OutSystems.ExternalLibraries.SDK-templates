@@ -159,7 +159,7 @@ string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 <p>The SDK applies these rules to user metadata:</p>
 <ul>
 <li>Keys are case-insensitive and always read back in lowercase. <code>BulkValidate</code> writes <code>sourcefilekey</code> in lowercase and <code>RejectedCountries</code> in mixed case, and <code>UserData</code> lists them as <code>sourcefilekey</code> and <code>rejectedcountries</code>, with the file name as <code>filename</code>. Lookups ignore casing, so <code>GetMetadata("RejectedCountries")</code> still finds the <code>rejectedcountries</code> entry. That's why <code>GetFileMetadata</code> compares the key with <code>IFileMetadata.Keys.FileName</code> ignoring case, to leave the file name out of the user data it returns. Keys that differ only in casing are rejected.</li>
-<li>Keys may only contain ASCII letters, digits and a few symbols such as <code>-</code>, <code>_</code> and <code>.</code> (no spaces). Values, and the file name, must be printable ASCII. The metadata, file name included, is limited to about 1500 bytes. Invalid metadata throws <code>ArgumentException</code> before anything is stored.</li>
+<li>Invalid metadata throws <code>ArgumentException</code> before anything is stored. For the full list of rules, such as the allowed characters and the size limit, see the <a href="https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99">metadata rules</a>.</li>
 </ul>
 <h4>Exceptions</h4>
 <p>Storage failures are raised as typed exceptions deriving from <code>FileStorageException</code> (namespace <code>OutSystems.ExternalLibraries.SDK.FileStorage.Exceptions</code>):</p>
