@@ -65,18 +65,17 @@ public class IbanCheckerFileStorageTests {
     }
 
     /// <summary>
-    /// Verifies the file actions fail when no file storage is registered. This also guards that
-    /// the library never calls FileStorage.Configure itself: in ODC that would replace the ODC
+    /// Verifies IbanChecker cannot be created when no file storage is registered. This also guards
+    /// that the library never calls FileStorage.Configure itself: in ODC that would replace the ODC
     /// file storage.
     /// </summary>
     [Test]
-    public void GetFileMetadataThrowsWhenFileStorageIsNotConfigured() {
-        // Setup: Seed a file, then clear the fake registered in SetUp.
-        var file = SeedTextFile("hello");
+    public void IbanCheckerThrowsWhenFileStorageIsNotConfigured() {
+        // Setup: Clear the fake registered in SetUp.
         FileStorage.Reset();
 
-        // Act and Assert: The action asks for the file storage, which is not configured.
-        Assert.Throws<InvalidOperationException>(() => _checker.GetFileMetadata(file));
+        // Act and Assert: The constructor asks for the file storage, which is not configured.
+        Assert.Throws<InvalidOperationException>(() => new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>()));
     }
 
     /// <summary>
@@ -211,7 +210,7 @@ public class IbanCheckerFileStorageTests {
 
     /// <summary>
     /// Tests GetFileMetadata returns the name, content type, size and user data of a file, without
-    /// the file name entry.
+    /// the FileName entry.
     /// </summary>
     [Test]
     public void GetFileMetadataReturnsDetailsWithoutFileNameInUserData() {

@@ -27,9 +27,9 @@ namespace OutSystems.IbanChecker.Structures {
         /// </summary>
         public long Size;
 
-        [OSStructureField(Description = "The user metadata attached to the file when it was created. The keys are in lowercase.", IsMandatory = true)]
+        [OSStructureField(Description = "The user metadata attached to the file when it was created.", IsMandatory = true)]
         /// <summary>
-        /// The user metadata attached to the file when it was created. The keys are in lowercase.
+        /// The user metadata attached to the file when it was created.
         /// </summary>
         public List<MetadataEntry> UserData;
 

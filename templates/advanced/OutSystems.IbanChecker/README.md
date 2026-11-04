@@ -24,7 +24,7 @@
 
         Each method is exposed as a server action to your ODC apps and libraries.
 
-    * **IbanChecker.cs**: Defines a public class named `IbanChecker` that implements the `IIbanChecker` interface. The class is a convenient wrapper for the `IbanNet` library, an [open-source library](https://github.com/skwasjer/IbanNet) that provides functionality for parsing and validating IBANs. The class contains private fields `_parser` and `_validator`, which are instances of the `IIbanParser` and `IIbanValidator` interfaces. The constructor initializes these instances for use in the class methods. The file actions get the FileStorage SDK instance from the private property `Storage`.
+    * **IbanChecker.cs**: Defines a public class named `IbanChecker` that implements the `IIbanChecker` interface. The class is a convenient wrapper for the `IbanNet` library, an [open-source library](https://github.com/skwasjer/IbanNet) that provides functionality for parsing and validating IBANs. The class contains private fields `_parser` and `_validator`, which are instances of the `IIbanParser` and `IIbanValidator` interfaces. The constructor initializes these instances for use in the class methods. It also gets the FileStorage SDK instance, kept in the private field `_fileStorage`, that the file actions use.
 
     * **Structures/Iban.cs** Defines a struct named `Iban`, decorated with the `OSStructure` attribute. The struct has four public properties: `Country`, `Bban`, `BankIdentifier`, and `BranchIdentifier`. It's exposed as a structure to your ODC apps and libraries.
 
@@ -60,11 +60,19 @@
 
 External libraries receive and return files as `IOSFile` handles. The FileStorage SDK (`OutSystems.ExternalLibraries.SDK.FileStorage`) reads and creates the content of those files in ODC file storage. The same code runs on ODC Cloud and ODC Self-Hosted.
 
-Get the SDK instance with `FileStorage.GetInstance()`. `IbanChecker` does this when a file action runs, not in its constructor, so the actions that don't use files work without file storage:
+Get the SDK instance with `FileStorage.GetInstance()`. `IbanChecker` does this once, in its constructor:
 
 ```csharp
-private static IFileStorage Storage => FileStorage.GetInstance();
+private readonly IFileStorage _fileStorage;
+
+public IbanChecker(ILogger logger) {
+    // ...
+    _fileStorage = FileStorage.GetInstance();
+}
 ```
+
+> [!NOTE]
+> Because the constructor calls `GetInstance()`, creating an `IbanChecker` needs a registered file storage, even to run the actions that don't use files. That is why `IbanCheckerTests` also registers `InMemoryFileStorage`. If that matters for your library, get the instance only when a file action runs, for example with `private static IFileStorage Storage => FileStorage.GetInstance();`.
 
 OSActions are synchronous, so the file actions call one private `async` method and block on it once with `.GetAwaiter().GetResult()`.
 
@@ -184,7 +192,7 @@ public async Task GetFileMetadataReturnsFileDetails() {
 }
 ```
 
-`FileStorage` is process-wide state, so mark every fixture that uses it `[NonParallelizable]`, as `IbanCheckerFileStorageTests` does. That also overrides an assembly-level `[Parallelizable]` setting.
+`FileStorage` is process-wide state, so mark every fixture that uses it `[NonParallelizable]`, as `IbanCheckerTests` and `IbanCheckerFileStorageTests` do. That also overrides an assembly-level `[Parallelizable]` setting.
 
 To test how your code handles the size limit, set `MaxFileSizeBytes`. Creating a larger file then throws `FileSizeLimitExceededException`, as in `BulkValidateRethrowsFileSizeLimitExceeded`. `MaxFileSizeBytes` is a test-only feature of `InMemoryFileStorage` and is not part of `IFileStorage`, which is why the fixture keeps the fake in a field of type `InMemoryFileStorage`:
 

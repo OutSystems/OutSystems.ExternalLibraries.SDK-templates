@@ -38,21 +38,22 @@ namespace OutSystems.IbanChecker {
         private readonly ILogger _logger;
 
         /// <summary>
-        /// The FileStorage SDK instance used to read and create files in ODC file storage. It is
-        /// resolved when a file action runs, not when the class is created, so the actions that do
-        /// not use files work without file storage.
+        /// The FileStorage SDK instance used to read and create files in ODC file storage.
         /// </summary>
-        private static IFileStorage Storage => FileStorage.GetInstance();
+        private readonly IFileStorage _fileStorage;
 
         /// <summary>
         /// The constructor initializes the IbanChecker class with the specified logger and creates new instances
-        /// of the IbanParser and IbanValidator classes from the IbanNet library.
+        /// of the IbanParser and IbanValidator classes from the IbanNet library. It also gets the FileStorage
+        /// SDK instance used by the file actions.
         /// </summary>
         /// <param name="logger">The logger instance used for logging operations within the IbanChecker.</param>
         public IbanChecker(ILogger logger) {
             _validator = new IbanValidator();
             _parser = new IbanParser(_validator);
             _logger = logger;
+            // The recommended way to access ODC file storage from an External Library.
+            _fileStorage = FileStorage.GetInstance();
         }
 
         /// <summary>
@@ -181,10 +182,9 @@ namespace OutSystems.IbanChecker {
                 userData["RejectedCountries"] = string.Join(",", rejectedCountries);
             }
 
-            var storage = Storage;
-            return storage.CreateFileFromWriterAsync("validation_results.csv", "text/csv",
+            return _fileStorage.CreateFileFromWriterAsync("validation_results.csv", "text/csv",
                 async (destination, token) => {
-                    await using var source = await storage.ReadFileAsStreamAsync(ibansFile, token);
+                    await using var source = await _fileStorage.ReadFileAsStreamAsync(ibansFile, token);
                     using var reader = new StreamReader(source);
                     // The FileStorage SDK owns the destination stream, so leave it open.
                     await using var writer = new StreamWriter(destination, new UTF8Encoding(false), leaveOpen: true);
@@ -235,7 +235,7 @@ namespace OutSystems.IbanChecker {
         }
 
         private async Task<Structures.FileDetails> GetFileMetadataAsync(IOSFile file, CancellationToken cancellationToken = default) {
-            var metadata = await Storage.GetFileMetadataAsync(file, cancellationToken);
+            var metadata = await _fileStorage.GetFileMetadataAsync(file, cancellationToken);
             var details = new Structures.FileDetails(
                 metadata.GetMetadata(IFileMetadata.Keys.FileName) ?? string.Empty, file.ContentType, file.Size);
             // Metadata keys are case-insensitive and come back in lowercase, so compare ignoring case.
