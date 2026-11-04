@@ -191,14 +191,16 @@ public class InMemoryFileStorageTests {
     }
 
     /// <summary>
-    /// Verifies a FileName key in the user data is ignored: the file name always comes from the
-    /// fileName argument.
+    /// Verifies a FileName key in the user data is ignored, in any casing: the file name always comes
+    /// from the fileName argument.
     /// </summary>
-    [Test]
-    public async Task CreateFileAsyncIgnoresFileNameInUserData() {
+    [TestCase("FileName")]
+    [TestCase("filename")]
+    [TestCase("FILENAME")]
+    public async Task CreateFileAsyncIgnoresFileNameInUserData(string fileNameKey) {
         // Setup: User data that tries to override the file name.
         var storage = new InMemoryFileStorage();
-        var userData = new Dictionary<string, string> { ["Owner"] = "x", ["FileName"] = "evil.txt" };
+        var userData = new Dictionary<string, string> { ["Owner"] = "x", [fileNameKey] = "evil.txt" };
 
         // Act: Store the file and read its metadata.
         var file = await storage.CreateFileAsync("a.txt", "text/plain", new byte[] { 1 }, userData);
@@ -209,6 +211,21 @@ public class InMemoryFileStorageTests {
             Assert.That(metadata.GetMetadata(IFileMetadata.Keys.FileName), Is.EqualTo("a.txt"));
             Assert.That(metadata.UserData.Keys, Is.EquivalentTo(new[] { "owner", "filename" }));
         });
+    }
+
+    /// <summary>
+    /// Verifies user data keys that differ only in casing throw ArgumentException, as in the
+    /// FileStorage SDK, instead of being merged.
+    /// </summary>
+    [Test]
+    public void CreateFileAsyncThrowsWhenKeysDifferOnlyInCasing() {
+        // Setup: User data with the same key in two casings.
+        var storage = new InMemoryFileStorage();
+        var userData = new Dictionary<string, string> { ["Owner"] = "x", ["OWNER"] = "y" };
+
+        // Act and Assert: Storing the file rejects the colliding keys.
+        Assert.ThrowsAsync<ArgumentException>(
+            () => storage.CreateFileAsync("a.txt", "text/plain", new byte[] { 1 }, userData));
     }
 
     /// <summary>

@@ -94,21 +94,21 @@ Create a small file from a byte array and read it back:
 
 ```csharp
 byte[] content = Encoding.UTF8.GetBytes("hello");
-IOSFile file = await Storage.CreateFileAsync("hello.txt", "text/plain", content);
-byte[] sameContent = await Storage.ReadFileAsync(file);
+IOSFile file = await _fileStorage.CreateFileAsync("hello.txt", "text/plain", content);
+byte[] sameContent = await _fileStorage.ReadFileAsync(file);
 ```
 
 Create a file from a stream you already have:
 
 ```csharp
 using Stream source = await httpClient.GetStreamAsync(url);
-IOSFile file = await Storage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
+IOSFile file = await _fileStorage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
 ```
 
 Read only the first kilobyte of a file. `endByte` is inclusive, so bytes 0 to 1023 are 1024 bytes:
 
 ```csharp
-await using Stream preview = await Storage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
+await using Stream preview = await _fileStorage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
 using var reader = new StreamReader(preview);
 string firstKilobyte = await reader.ReadToEndAsync();
 ```
@@ -119,13 +119,13 @@ Every create method accepts an optional `additionalUserData` dictionary that is 
 
 ```csharp
 var userData = new Dictionary<string, string> { ["sourcefilekey"] = ibansFile.Key };
-IOSFile output = await Storage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
+IOSFile output = await _fileStorage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
 ```
 
 Read it back with `GetFileMetadataAsync`. The SDK also stores the file name in the metadata, under `IFileMetadata.Keys.FileName`:
 
 ```csharp
-IFileMetadata metadata = await Storage.GetFileMetadataAsync(file);
+IFileMetadata metadata = await _fileStorage.GetFileMetadataAsync(file);
 string? fileName = metadata.GetMetadata(IFileMetadata.Keys.FileName);
 string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 ```
@@ -154,14 +154,12 @@ For more details, see the [main README of the External Libraries SDK](https://ww
 > [!WARNING]
 > **Never call `FileStorage.Configure` or `FileStorage.Reset` from library code**; only test projects call them. If the External Library called them, the published library would replace or drop the ODC file storage.
 
-The library project enforces this at build time. It references [`Microsoft.CodeAnalysis.BannedApiAnalyzers`](https://www.nuget.org/packages/Microsoft.CodeAnalysis.BannedApiAnalyzers), which is only used to build and is not part of the uploaded library. Both methods are listed in `BannedSymbols.txt`, and `OutSystems.IbanChecker.csproj` treats the `RS0030` warning as an error, so calling either one from the library fails the build. The test project doesn't have this check, so it can call both.
-
 #### Reuse it in your own tests
 
 Copy the `FileStorageTesting/` folder into your own test project. Only `InMemoryFileStorage.cs` is required, and `InMemoryFileStorageTests.cs` is optional. Only the `namespace` needs to change. `InMemoryFileStorage` implements the full `IFileStorage` interface, including the methods this template does not use (`CreateFileAsync`, `CreateFileFromStreamAsync`, `ReadFileAsync` and `ReadFileRangeAsync`), and depends only on the two OutSystems SDK packages.
 
 > [!WARNING]
-> `InMemoryFileStorage` is a simplified version of `IFileStorage`. It does not validate metadata and cannot mimic all the behavior of the ODC File Storage SDK. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.
+> `InMemoryFileStorage` is a simplified version of `IFileStorage`. It does not validate metadata as the ODC File Storage SDK does (see the [metadata rules](https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99)) and cannot mimic all of its behavior. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.
 
 In every `SetUp`, call `FileStorage.Reset()` and then register a new fake with `FileStorage.Configure`, and call `Reset()` again in `TearDown`. `Reset()` drops both the cached instance and the registered factory, so every test starts with a new, empty storage. Seed input files with `_storage.CreateFileAsync`:
 

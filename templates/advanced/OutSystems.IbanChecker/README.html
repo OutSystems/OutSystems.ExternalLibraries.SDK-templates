@@ -134,25 +134,25 @@ public IbanChecker(ILogger logger) {
 <h4>Snippets for the methods the actions do not call</h4>
 <p>Create a small file from a byte array and read it back:</p>
 <pre><code class="language-csharp">byte[] content = Encoding.UTF8.GetBytes("hello");
-IOSFile file = await Storage.CreateFileAsync("hello.txt", "text/plain", content);
-byte[] sameContent = await Storage.ReadFileAsync(file);
+IOSFile file = await _fileStorage.CreateFileAsync("hello.txt", "text/plain", content);
+byte[] sameContent = await _fileStorage.ReadFileAsync(file);
 </code></pre>
 <p>Create a file from a stream you already have:</p>
 <pre><code class="language-csharp">using Stream source = await httpClient.GetStreamAsync(url);
-IOSFile file = await Storage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
+IOSFile file = await _fileStorage.CreateFileFromStreamAsync("download.bin", "application/octet-stream", source);
 </code></pre>
 <p>Read only the first kilobyte of a file. <code>endByte</code> is inclusive, so bytes 0 to 1023 are 1024 bytes:</p>
-<pre><code class="language-csharp">await using Stream preview = await Storage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
+<pre><code class="language-csharp">await using Stream preview = await _fileStorage.ReadFileRangeAsync(file, startByte: 0, endByte: 1023);
 using var reader = new StreamReader(preview);
 string firstKilobyte = await reader.ReadToEndAsync();
 </code></pre>
 <h4>User metadata</h4>
 <p>Every create method accepts an optional <code>additionalUserData</code> dictionary that is stored with the file. <code>BulkValidate</code> uses it to record the key of the source file and the rejected countries:</p>
 <pre><code class="language-csharp">var userData = new Dictionary&lt;string, string&gt; { ["sourcefilekey"] = ibansFile.Key };
-IOSFile output = await Storage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
+IOSFile output = await _fileStorage.CreateFileFromWriterAsync("validation_results.csv", "text/csv", writeAsync, userData);
 </code></pre>
 <p>Read it back with <code>GetFileMetadataAsync</code>. The SDK also stores the file name in the metadata, under <code>IFileMetadata.Keys.FileName</code>:</p>
-<pre><code class="language-csharp">IFileMetadata metadata = await Storage.GetFileMetadataAsync(file);
+<pre><code class="language-csharp">IFileMetadata metadata = await _fileStorage.GetFileMetadataAsync(file);
 string? fileName = metadata.GetMetadata(IFileMetadata.Keys.FileName);
 string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 </code></pre>
@@ -178,11 +178,10 @@ string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 <blockquote>
 <p><strong>Warning:</strong> <strong>Never call <code>FileStorage.Configure</code> or <code>FileStorage.Reset</code> from library code</strong>; only test projects call them. If the External Library called them, the published library would replace or drop the ODC file storage.</p>
 </blockquote>
-<p>The library project enforces this at build time. It references <a href="https://www.nuget.org/packages/Microsoft.CodeAnalysis.BannedApiAnalyzers"><code>Microsoft.CodeAnalysis.BannedApiAnalyzers</code></a>, which is only used to build and is not part of the uploaded library. Both methods are listed in <code>BannedSymbols.txt</code>, and <code>OutSystems.IbanChecker.csproj</code> treats the <code>RS0030</code> warning as an error, so calling either one from the library fails the build. The test project doesn't have this check, so it can call both.</p>
 <h4>Reuse it in your own tests</h4>
 <p>Copy the <code>FileStorageTesting/</code> folder into your own test project. Only <code>InMemoryFileStorage.cs</code> is required, and <code>InMemoryFileStorageTests.cs</code> is optional. Only the <code>namespace</code> needs to change. <code>InMemoryFileStorage</code> implements the full <code>IFileStorage</code> interface, including the methods this template does not use (<code>CreateFileAsync</code>, <code>CreateFileFromStreamAsync</code>, <code>ReadFileAsync</code> and <code>ReadFileRangeAsync</code>), and depends only on the two OutSystems SDK packages.</p>
 <blockquote>
-<p><strong>Warning:</strong> <code>InMemoryFileStorage</code> is a simplified version of <code>IFileStorage</code>. It does not validate metadata and cannot mimic all the behavior of the ODC File Storage SDK. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.</p>
+<p><strong>Warning:</strong> <code>InMemoryFileStorage</code> is a simplified version of <code>IFileStorage</code>. It does not validate metadata as the ODC File Storage SDK does (see the <a href="https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99">metadata rules</a>) and cannot mimic all of its behavior. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.</p>
 </blockquote>
 <p>In every <code>SetUp</code>, call <code>FileStorage.Reset()</code> and then register a new fake with <code>FileStorage.Configure</code>, and call <code>Reset()</code> again in <code>TearDown</code>. <code>Reset()</code> drops both the cached instance and the registered factory, so every test starts with a new, empty storage. Seed input files with <code>_storage.CreateFileAsync</code>:</p>
 <pre><code class="language-csharp">private InMemoryFileStorage _storage = null!;

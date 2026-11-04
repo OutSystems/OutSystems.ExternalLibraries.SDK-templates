@@ -8,9 +8,16 @@ namespace OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 /// <summary>
 /// A complete, in-memory implementation of <see cref="IFileStorage"/> for unit tests.
 /// Files live in a dictionary for the lifetime of the instance, so no ODC environment is needed.
-/// In your test SetUp, call <c>FileStorage.Reset()</c> and then register a new instance with
-/// <c>FileStorage.Configure(() => storage)</c>. Copy this file into your own test project to test any
-/// FileStorage-based code.
+/// Copy this file into your own test project to test any FileStorage-based code:
+/// <list type="bullet">
+/// <item>In SetUp, call <c>FileStorage.Reset()</c> and then register a new instance with
+/// <c>FileStorage.Configure(() => storage)</c>.</item>
+/// <item>In TearDown, call <c>FileStorage.Reset()</c>.</item>
+/// <item>Mark the fixture <c>[NonParallelizable]</c>, because FileStorage is process-wide state.</item>
+/// </list>
+/// It does not validate metadata as the ODC File Storage SDK does, so always test your library in
+/// ODC before you release it. For the metadata rules, see
+/// https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99
 /// </summary>
 public sealed class InMemoryFileStorage : IFileStorage {
 
@@ -86,12 +93,17 @@ public sealed class InMemoryFileStorage : IFileStorage {
         }
 
         // Like the real SDK, metadata keys are stored in lowercase and matched case-insensitively,
-        // and the file name is stored last under Keys.FileName, so a FileName key in
-        // additionalUserData is ignored. Unlike the SDK, metadata is not validated: keys that differ
-        // only in casing are merged here, where the SDK throws an ArgumentException.
+        // keys that differ only in casing throw an ArgumentException, and the file name is stored
+        // last under Keys.FileName, so a FileName key in additionalUserData is ignored. No other
+        // metadata rule is checked; for the full list, see
+        // https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99
         var userData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in additionalUserData ?? new Dictionary<string, string>()) {
-            userData[key.ToLowerInvariant()] = value;
+            if (!userData.TryAdd(key.ToLowerInvariant(), value)) {
+                throw new ArgumentException(
+                    $"Metadata key '{key}' differs from another key only in casing.",
+                    nameof(additionalUserData));
+            }
         }
         userData[IFileMetadata.Keys.FileName.ToLowerInvariant()] = fileName;
 

@@ -53,6 +53,7 @@ namespace OutSystems.IbanChecker {
             _parser = new IbanParser(_validator);
             _logger = logger;
             // A simple way to access ODC file storage from an External Library.
+            // Throws InvalidOperationException if no file storage is registered (see IbanCheckerTests.SetUp).
             _fileStorage = FileStorage.GetInstance();
         }
 

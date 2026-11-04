@@ -65,17 +65,18 @@ public class IbanCheckerFileStorageTests {
     }
 
     /// <summary>
-    /// Verifies IbanChecker cannot be created when no file storage is registered. This also guards
-    /// that the library never calls FileStorage.Configure itself: in ODC that would replace the ODC
-    /// file storage.
+    /// Verifies IbanChecker file actions fail when no file storage is registered.
     /// </summary>
     [Test]
     public void IbanCheckerThrowsWhenFileStorageIsNotConfigured() {
-        // Setup: Clear the fake registered in SetUp.
+        // Setup: Seed an input file, then clear the fake registered in SetUp.
+        var input = SeedTextFile($"{ValidNlIban}\n");
         FileStorage.Reset();
 
-        // Act and Assert: The constructor asks for the file storage, which is not configured.
-        Assert.Throws<InvalidOperationException>(() => new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>()));
+        // Act and Assert: Getting the file storage throws, whether IbanChecker gets it in its
+        // constructor or only when a file action runs.
+        Assert.Throws<InvalidOperationException>(
+            () => new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>()).BulkValidate(input));
     }
 
     /// <summary>
