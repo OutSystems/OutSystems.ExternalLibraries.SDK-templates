@@ -52,7 +52,7 @@ namespace OutSystems.IbanChecker {
             _validator = new IbanValidator();
             _parser = new IbanParser(_validator);
             _logger = logger;
-            // The recommended way to access ODC file storage from an External Library.
+            // A simple way to access ODC file storage from an External Library.
             _fileStorage = FileStorage.GetInstance();
         }
 
