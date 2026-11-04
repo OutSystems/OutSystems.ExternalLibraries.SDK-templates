@@ -1,0 +1,2 @@
+M:OutSystems.ExternalLibraries.SDK.FileStorage.FileStorage.Configure(System.Func{OutSystems.ExternalLibraries.SDK.FileStorage.IFileStorage});Only the ODC runtime and test projects may register the file storage. In library code it would replace the ODC file storage.
+M:OutSystems.ExternalLibraries.SDK.FileStorage.FileStorage.Reset;Only test projects may reset the file storage. In library code it would drop the ODC file storage registered by the runtime.

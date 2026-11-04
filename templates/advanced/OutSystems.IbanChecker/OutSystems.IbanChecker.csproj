@@ -3,6 +3,8 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
+        <!-- Calling an API listed in BannedSymbols.txt fails the build. -->
+        <WarningsAsErrors>$(WarningsAsErrors);RS0030</WarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>
@@ -10,6 +12,13 @@
         <PackageReference Include="OutSystems.ExternalLibraries.SDK" Version="1.7.0" />
         <PackageReference Include="OutSystems.ExternalLibraries.SDK.FileStorage" Version="1.2.1" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+        <!-- Build-time only: checks this project's code and is not part of the uploaded library. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- FileStorage.Configure and FileStorage.Reset are for the ODC runtime and test projects only. -->
+        <AdditionalFiles Include="BannedSymbols.txt" />
     </ItemGroup>
 
     <ItemGroup>

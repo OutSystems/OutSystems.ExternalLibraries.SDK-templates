@@ -144,7 +144,9 @@ For more details, see the [main README of the External Libraries SDK](https://ww
 `FileStorage.GetInstance()` returns whatever was registered with `FileStorage.Configure`. In ODC, the External Library runtime registers the real file storage before any action runs. Outside ODC there is no file storage to talk to, so the unit tests register `InMemoryFileStorage`, a simplified version of `IFileStorage`, instead. This way the library code stays exactly as you would write it for ODC, with no constructor overloads or `InternalsVisibleTo` added for testing.
 
 > [!WARNING]
-> **Never call `FileStorage.Configure` from library code**; only test projects call it. If the External Library called it, the published library would replace the ODC file storage and store files in memory instead of in ODC.
+> **Never call `FileStorage.Configure` or `FileStorage.Reset` from library code**; only test projects call them. If the External Library called them, the published library would replace or drop the ODC file storage.
+
+The library project enforces this at build time. It references [`Microsoft.CodeAnalysis.BannedApiAnalyzers`](https://www.nuget.org/packages/Microsoft.CodeAnalysis.BannedApiAnalyzers), which is only used to build and is not part of the uploaded library. Both methods are listed in `BannedSymbols.txt`, and `OutSystems.IbanChecker.csproj` treats the `RS0030` warning as an error, so calling either one from the library fails the build. The test project doesn't have this check, so it can call both.
 
 #### Reuse it in your own tests
 
