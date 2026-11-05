@@ -3,11 +3,25 @@ using IbanNet.Registry;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using OutSystems.ExternalLibraries.SDK;
+using OutSystems.ExternalLibraries.SDK.FileStorage;
+using OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 using Iban = OutSystems.IbanChecker.Structures.Iban;
 
 namespace OutSystems.IbanChecker.UnitTests;
 
+// FileStorage is process-wide static state, so these tests must not run in parallel.
+[NonParallelizable]
 public class IbanCheckerTests {
+
+    [SetUp]
+    public void SetUp() {
+        // IbanChecker gets its file storage in the constructor, so register the fake first.
+        FileStorage.Reset();
+        FileStorage.Configure(() => new InMemoryFileStorage());
+    }
+
+    [TearDown]
+    public void TearDown() => FileStorage.Reset();
 
     /// <summary>
     /// Tests if the Iban constructor correctly creates the Iban struct for

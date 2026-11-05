@@ -8,7 +8,16 @@ namespace OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 /// <summary>
 /// A complete, in-memory implementation of <see cref="IFileStorage"/> for unit tests.
 /// Files live in a dictionary for the lifetime of the instance, so no ODC environment is needed.
-/// Copy this file (and Loader.cs) into your own test project to test any FileStorage-based code.
+/// Copy this file into your own test project to test any FileStorage-based code:
+/// <list type="bullet">
+/// <item>In SetUp, call <c>FileStorage.Reset()</c> and then register a new instance with
+/// <c>FileStorage.Configure(() => storage)</c>.</item>
+/// <item>In TearDown, call <c>FileStorage.Reset()</c>.</item>
+/// <item>Mark the fixture <c>[NonParallelizable]</c>, because FileStorage is process-wide state.</item>
+/// </list>
+/// It does not validate metadata as the ODC File Storage SDK does, so always test your library in
+/// ODC before you release it. For the metadata rules, see
+/// https://success.outsystems.com/documentation/outsystems_developer_cloud/building_apps/data_management/file_data_type/working_with_file_values_in_external_libraries/
 /// </summary>
 public sealed class InMemoryFileStorage : IFileStorage {
 
@@ -83,11 +92,20 @@ public sealed class InMemoryFileStorage : IFileStorage {
             throw new FileSizeLimitExceededException(limit);
         }
 
-        // Like the real SDK, the file name is stored as user metadata under Keys.FileName.
-        var userData = additionalUserData is null
-            ? new Dictionary<string, string>()
-            : new Dictionary<string, string>(additionalUserData);
-        userData[IFileMetadata.Keys.FileName] = fileName;
+        // Like the real SDK, metadata keys are stored in lowercase and matched case-insensitively,
+        // keys that differ only in casing throw an ArgumentException, and the file name is stored
+        // last under Keys.FileName, so a FileName key in additionalUserData is ignored. No other
+        // metadata rule is checked; for the full list, see
+        // https://success.outsystems.com/documentation/outsystems_developer_cloud/building_apps/data_management/file_data_type/working_with_file_values_in_external_libraries/
+        var userData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in additionalUserData ?? new Dictionary<string, string>()) {
+            if (!userData.TryAdd(key.ToLowerInvariant(), value)) {
+                throw new ArgumentException(
+                    $"Metadata key '{key}' differs from another key only in casing.",
+                    nameof(additionalUserData));
+            }
+        }
+        userData[IFileMetadata.Keys.FileName.ToLowerInvariant()] = fileName;
 
         var file = new InMemoryFile(Guid.NewGuid().ToString("N"), "1", contentType, content.LongLength);
         _files[file.Key] = new StoredFile(content, userData);

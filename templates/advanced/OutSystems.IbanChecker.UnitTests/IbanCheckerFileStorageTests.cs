@@ -10,35 +10,30 @@ using OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 namespace OutSystems.IbanChecker.UnitTests;
 
 /// <summary>
-/// Tests for the IbanChecker actions that use the FileStorage SDK. FileStorage.GetInstance()
-/// resolves to <see cref="InMemoryFileStorage"/> through the test-only Loader, so no ODC
-/// environment is needed.
+/// Tests for the IbanChecker actions that use the FileStorage SDK. Each test registers
+/// <see cref="InMemoryFileStorage"/> with FileStorage.Configure, so no ODC environment is needed.
 /// </summary>
+// FileStorage is process-wide static state, so these tests must not run in parallel.
+[NonParallelizable]
 public class IbanCheckerFileStorageTests {
 
     private const string ValidNlIban = "NL91ABNA0417164300";
     private const string ValidPtIban = "PT50000201231234567890154";
 
-    private IFileStorage _storage = null!;
+    private InMemoryFileStorage _storage = null!;
     private IbanChecker _checker = null!;
 
     [SetUp]
     public void SetUp() {
-        // Drop any cached instance so every test gets a fresh, empty in-memory storage.
+        // Reset() first: Configure alone doesn't replace an instance that is already cached.
         FileStorage.Reset();
-        _storage = FileStorage.GetInstance();
+        _storage = new InMemoryFileStorage();
+        FileStorage.Configure(() => _storage);
         _checker = new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>());
     }
 
     [TearDown]
-    public void TearDown() {
-        FileStorage.Reset();
-    }
-
-    // Test-only feature of InMemoryFileStorage, not part of IFileStorage.
-    private void SetMaxAllowedFileSizeBytes(long maxBytes) {
-        ((InMemoryFileStorage)_storage).MaxFileSizeBytes = maxBytes;
-    }
+    public void TearDown() => FileStorage.Reset();
 
     // Stores a text file in the in-memory storage, as an ODC app would have uploaded it.
     private IOSFile SeedTextFile(string content, IDictionary<string, string>? userData = null) {
@@ -55,35 +50,33 @@ public class IbanCheckerFileStorageTests {
     }
 
     /// <summary>
-    /// Verifies FileStorage.GetInstance() returns the in-memory fake. If the Loader was not
-    /// discovered, the tests would otherwise silently depend on real storage.
+    /// Verifies FileStorage.GetInstance() returns the in-memory fake registered in SetUp, so the
+    /// files seeded through the fake are the ones the IbanChecker actions read.
     /// </summary>
     [Test]
     public void FileStorageResolvesToInMemoryFileStorage() {
-        // Setup: SetUp already reset the SDK and asked for its instance.
+        // Setup: SetUp already registered the fake.
 
-        // Act: Ask the SDK for its file storage again.
+        // Act: Ask the SDK for its file storage.
         var storage = FileStorage.GetInstance();
 
-        // Assert: The Loader provided the in-memory fake, and it is the cached instance.
-        Assert.That(storage, Is.InstanceOf<InMemoryFileStorage>());
+        // Assert: The registered in-memory fake is returned.
         Assert.That(storage, Is.SameAs(_storage));
     }
 
     /// <summary>
-    /// Guard test: the test-only Loader must never end up in the External Library, otherwise the
-    /// published library would store files in memory instead of in ODC.
+    /// Verifies IbanChecker file actions fail when no file storage is registered.
     /// </summary>
     [Test]
-    public void LibraryAssemblyDoesNotContainFileStorageLoader() {
-        // Setup: The Loader type name the FileStorage SDK looks for.
-        const string loaderTypeName = "OutSystems.ExternalLibraries.SDK.FileStorage.Loader";
+    public void IbanCheckerThrowsWhenFileStorageIsNotConfigured() {
+        // Setup: Seed an input file, then clear the fake registered in SetUp.
+        var input = SeedTextFile($"{ValidNlIban}\n");
+        FileStorage.Reset();
 
-        // Act: Look for the Loader in the External Library assembly.
-        var loaderType = typeof(IbanChecker).Assembly.GetType(loaderTypeName);
-
-        // Assert: It is not there.
-        Assert.That(loaderType, Is.Null);
+        // Act and Assert: Getting the file storage throws, whether IbanChecker gets it in its
+        // constructor or only when a file action runs.
+        Assert.Throws<InvalidOperationException>(
+            () => new IbanChecker(new LoggerFactory().CreateLogger<IbanChecker>()).BulkValidate(input));
     }
 
     /// <summary>
@@ -159,12 +152,15 @@ public class IbanCheckerFileStorageTests {
         var withRejected = await _storage.GetFileMetadataAsync(_checker.BulkValidate(input, new[] { "PT", "ES" }));
         var withoutRejected = await _storage.GetFileMetadataAsync(_checker.BulkValidate(input));
 
-        // Assert: RejectedCountries is only present when countries were given.
+        // Assert: The rejected countries are only present when countries were given. Every key
+        // reads back in lowercase, and lookups ignore casing, so "RejectedCountries" still matches.
         Assert.Multiple(() => {
-            Assert.That(withRejected.GetMetadata("SourceFileKey"), Is.EqualTo(input.Key));
+            Assert.That(withRejected.UserData.Keys,
+                Is.EquivalentTo(new[] { "sourcefilekey", "rejectedcountries", "filename" }));
+            Assert.That(withRejected.GetMetadata("sourcefilekey"), Is.EqualTo(input.Key));
             Assert.That(withRejected.GetMetadata("RejectedCountries"), Is.EqualTo("PT,ES"));
-            Assert.That(withoutRejected.GetMetadata("SourceFileKey"), Is.EqualTo(input.Key));
-            Assert.That(withoutRejected.UserData.ContainsKey("RejectedCountries"), Is.False);
+            Assert.That(withoutRejected.GetMetadata("sourcefilekey"), Is.EqualTo(input.Key));
+            Assert.That(withoutRejected.UserData.ContainsKey("rejectedcountries"), Is.False);
         });
     }
 
@@ -195,7 +191,7 @@ public class IbanCheckerFileStorageTests {
     public void BulkValidateRethrowsFileSizeLimitExceeded() {
         // Setup: An input file and a storage that only accepts files up to 10 bytes.
         var input = SeedTextFile($"{ValidNlIban}\n");
-        SetMaxAllowedFileSizeBytes(10);
+        _storage.MaxFileSizeBytes = 10;
 
         // Act and Assert: The output does not fit, so the SDK exception reaches the caller.
         Assert.Throws<FileSizeLimitExceededException>(() => _checker.BulkValidate(input));
@@ -225,13 +221,14 @@ public class IbanCheckerFileStorageTests {
         // Act: Get the file details.
         var details = _checker.GetFileMetadata(file);
 
-        // Assert: The details are populated and FileName is not repeated in the user data.
+        // Assert: The details are populated, the key comes back in lowercase and the file name is
+        // not repeated in the user data.
         Assert.Multiple(() => {
             Assert.That(details.FileName, Is.EqualTo("input.txt"));
             Assert.That(details.ContentType, Is.EqualTo("text/plain"));
             Assert.That(details.Size, Is.EqualTo(5));
             Assert.That(details.UserData, Has.Count.EqualTo(1));
-            Assert.That(details.UserData[0].Key, Is.EqualTo("Owner"));
+            Assert.That(details.UserData[0].Key, Is.EqualTo("owner"));
             Assert.That(details.UserData[0].Value, Is.EqualTo("tests"));
         });
     }
@@ -252,7 +249,7 @@ public class IbanCheckerFileStorageTests {
         Assert.Multiple(() => {
             Assert.That(details.FileName, Is.EqualTo("validation_results.csv"));
             Assert.That(details.ContentType, Is.EqualTo("text/csv"));
-            Assert.That(details.UserData.Select(e => e.Key), Is.EqualTo(new[] { "SourceFileKey" }));
+            Assert.That(details.UserData.Select(e => e.Key), Is.EqualTo(new[] { "sourcefilekey" }));
             Assert.That(details.UserData[0].Value, Is.EqualTo(input.Key));
         });
     }

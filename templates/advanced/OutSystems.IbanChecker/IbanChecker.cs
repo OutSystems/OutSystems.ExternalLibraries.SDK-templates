@@ -52,7 +52,8 @@ namespace OutSystems.IbanChecker {
             _validator = new IbanValidator();
             _parser = new IbanParser(_validator);
             _logger = logger;
-            // The recommended way to access ODC file storage from an External Library.
+            // A simple way to access ODC file storage from an External Library.
+            // Throws InvalidOperationException if no file storage is registered (see IbanCheckerTests.SetUp).
             _fileStorage = FileStorage.GetInstance();
         }
 
@@ -156,6 +157,7 @@ namespace OutSystems.IbanChecker {
         /// <param name="rejectedCountries">An optional list of country codes to be rejected during validation.</param>
         /// <returns>The CSV file with the validation results.</returns>
         /// <exception cref="FileStorageException">Thrown if the FileStorage SDK fails to read or create a file.</exception>
+        /// <exception cref="ArgumentException">Thrown if the rejected countries are not valid file metadata.</exception>
         public IOSFile BulkValidate(IOSFile ibansFile, IEnumerable<string>? rejectedCountries = null) {
             _logger.LogInformation("Bulk validating IBANs from file {FileKey}", ibansFile.Key);
             try {
@@ -174,7 +176,8 @@ namespace OutSystems.IbanChecker {
             CancellationToken cancellationToken = default) {
             var validator = GetValidator(rejectedCountries);
             // User metadata is stored with the new file and can be read back with GetFileMetadata.
-            var userData = new Dictionary<string, string> { ["SourceFileKey"] = ibansFile.Key };
+            // Keys always read back in lowercase, so "RejectedCountries" comes back as "rejectedcountries".
+            var userData = new Dictionary<string, string> { ["sourcefilekey"] = ibansFile.Key };
             if (rejectedCountries != null && rejectedCountries.Any()) {
                 userData["RejectedCountries"] = string.Join(",", rejectedCountries);
             }
@@ -235,7 +238,9 @@ namespace OutSystems.IbanChecker {
             var metadata = await _fileStorage.GetFileMetadataAsync(file, cancellationToken);
             var details = new Structures.FileDetails(
                 metadata.GetMetadata(IFileMetadata.Keys.FileName) ?? string.Empty, file.ContentType, file.Size);
-            foreach (var entry in metadata.UserData.Where(e => e.Key != IFileMetadata.Keys.FileName)) {
+            // Metadata keys are case-insensitive and come back in lowercase, so compare ignoring case.
+            foreach (var entry in metadata.UserData.Where(
+                         e => !string.Equals(e.Key, IFileMetadata.Keys.FileName, StringComparison.OrdinalIgnoreCase))) {
                 details.UserData.Add(new Structures.MetadataEntry(entry.Key, entry.Value));
             }
             return details;

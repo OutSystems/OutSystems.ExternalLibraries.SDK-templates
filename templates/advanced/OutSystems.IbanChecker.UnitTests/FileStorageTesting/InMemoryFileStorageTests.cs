@@ -166,6 +166,69 @@ public class InMemoryFileStorageTests {
     }
 
     /// <summary>
+    /// Verifies metadata keys are exposed in lowercase and matched regardless of casing, as in the
+    /// FileStorage SDK.
+    /// </summary>
+    [Test]
+    public async Task GetFileMetadataAsyncExposesLowercaseKeysAndMatchesAnyCasing() {
+        // Setup: Store a file with a PascalCase user data key.
+        var storage = new InMemoryFileStorage();
+        var userData = new Dictionary<string, string> { ["Owner"] = "x" };
+        var file = await storage.CreateFileAsync("a.txt", "text/plain", new byte[] { 1 }, userData);
+
+        // Act: Read the metadata.
+        var metadata = await storage.GetFileMetadataAsync(file);
+
+        // Assert: Keys come back lowercase, and every lookup ignores casing.
+        Assert.Multiple(() => {
+            Assert.That(metadata.UserData.Keys, Is.EquivalentTo(new[] { "owner", "filename" }));
+            Assert.That(metadata.GetMetadata("OWNER"), Is.EqualTo("x"));
+            Assert.That(metadata.TryGetMetadata("oWnEr", out var owner), Is.True);
+            Assert.That(owner, Is.EqualTo("x"));
+            Assert.That(metadata.UserData.ContainsKey("Owner"), Is.True);
+            Assert.That(metadata.GetMetadata(IFileMetadata.Keys.FileName), Is.EqualTo("a.txt"));
+        });
+    }
+
+    /// <summary>
+    /// Verifies a FileName key in the user data is ignored, in any casing: the file name always comes
+    /// from the fileName argument.
+    /// </summary>
+    [TestCase("FileName")]
+    [TestCase("filename")]
+    [TestCase("FILENAME")]
+    public async Task CreateFileAsyncIgnoresFileNameInUserData(string fileNameKey) {
+        // Setup: User data that tries to override the file name.
+        var storage = new InMemoryFileStorage();
+        var userData = new Dictionary<string, string> { ["Owner"] = "x", [fileNameKey] = "evil.txt" };
+
+        // Act: Store the file and read its metadata.
+        var file = await storage.CreateFileAsync("a.txt", "text/plain", new byte[] { 1 }, userData);
+        var metadata = await storage.GetFileMetadataAsync(file);
+
+        // Assert: The fileName argument wins and there is a single filename entry.
+        Assert.Multiple(() => {
+            Assert.That(metadata.GetMetadata(IFileMetadata.Keys.FileName), Is.EqualTo("a.txt"));
+            Assert.That(metadata.UserData.Keys, Is.EquivalentTo(new[] { "owner", "filename" }));
+        });
+    }
+
+    /// <summary>
+    /// Verifies user data keys that differ only in casing throw ArgumentException, as in the
+    /// FileStorage SDK, instead of being merged.
+    /// </summary>
+    [Test]
+    public void CreateFileAsyncThrowsWhenKeysDifferOnlyInCasing() {
+        // Setup: User data with the same key in two casings.
+        var storage = new InMemoryFileStorage();
+        var userData = new Dictionary<string, string> { ["Owner"] = "x", ["OWNER"] = "y" };
+
+        // Act and Assert: Storing the file rejects the colliding keys.
+        Assert.ThrowsAsync<ArgumentException>(
+            () => storage.CreateFileAsync("a.txt", "text/plain", new byte[] { 1 }, userData));
+    }
+
+    /// <summary>
     /// Verifies the size limit makes create methods throw FileSizeLimitExceededException.
     /// </summary>
     [Test]
@@ -190,22 +253,5 @@ public class InMemoryFileStorageTests {
 
         // Act and Assert: Reading the unknown file fails.
         Assert.ThrowsAsync<FileNotFoundException>(() => storage.ReadFileAsync(unknownFile));
-    }
-
-    /// <summary>
-    /// Verifies FileStorage.GetInstance() discovers the test-only Loader and returns the in-memory
-    /// fake. If this fails, the tests would otherwise hit real storage.
-    /// </summary>
-    [Test]
-    public void FileStorageGetInstanceResolvesToInMemoryFileStorage() {
-        // Setup: Drop any cached instance so the Loader is used.
-        FileStorage.Reset();
-
-        // Act: Ask the SDK for its file storage.
-        var storage = FileStorage.GetInstance();
-
-        // Assert: The Loader provided the in-memory fake.
-        Assert.That(storage, Is.TypeOf<InMemoryFileStorage>());
-        FileStorage.Reset();
     }
 }
