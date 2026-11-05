@@ -133,7 +133,7 @@ string? sourceFileKey = metadata.GetMetadata("sourcefilekey");
 The SDK applies these rules to user metadata:
 
 * Keys are case-insensitive and always read back in lowercase. `BulkValidate` writes `sourcefilekey` in lowercase and `RejectedCountries` in mixed case, and `UserData` lists them as `sourcefilekey` and `rejectedcountries`, with the file name as `filename`. Lookups ignore casing, so `GetMetadata("RejectedCountries")` still finds the `rejectedcountries` entry. That's why `GetFileMetadata` compares the key with `IFileMetadata.Keys.FileName` ignoring case, to leave the file name out of the user data it returns. Keys that differ only in casing are rejected.
-* Invalid metadata throws `ArgumentException` before anything is stored. For the full list of rules, such as the allowed characters and the size limit, see the [metadata rules](https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99).
+* Invalid metadata throws `ArgumentException` before anything is stored. For the full list of rules, such as the allowed characters and the size limit, see the [metadata rules](https://success.outsystems.com/documentation/outsystems_developer_cloud/building_apps/data_management/file_data_type/working_with_file_values_in_external_libraries/).
 
 #### Exceptions
 
@@ -159,7 +159,7 @@ For more details, see the [main README of the External Libraries SDK](https://ww
 Copy the `FileStorageTesting/` folder into your own test project. Only `InMemoryFileStorage.cs` is required, and `InMemoryFileStorageTests.cs` is optional. Only the `namespace` needs to change. `InMemoryFileStorage` implements the full `IFileStorage` interface, including the methods this template does not use (`CreateFileAsync`, `CreateFileFromStreamAsync`, `ReadFileAsync` and `ReadFileRangeAsync`), and depends only on the two OutSystems SDK packages.
 
 > [!WARNING]
-> `InMemoryFileStorage` is a simplified version of `IFileStorage`. It does not validate metadata as the ODC File Storage SDK does (see the [metadata rules](https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99)) and cannot mimic all of its behavior. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.
+> `InMemoryFileStorage` is a simplified version of `IFileStorage`. It does not validate metadata as the ODC File Storage SDK does (see the [metadata rules](https://success.outsystems.com/documentation/outsystems_developer_cloud/building_apps/data_management/file_data_type/working_with_file_values_in_external_libraries/)) and cannot mimic all of its behavior. Tests that pass against it don't guarantee the same results in ODC, so always test your library in ODC before you release it.
 
 In every `SetUp`, call `FileStorage.Reset()` and then register a new fake with `FileStorage.Configure`, and call `Reset()` again in `TearDown`. `Reset()` drops both the cached instance and the registered factory, so every test starts with a new, empty storage. Seed input files with `_storage.CreateFileAsync`:
 

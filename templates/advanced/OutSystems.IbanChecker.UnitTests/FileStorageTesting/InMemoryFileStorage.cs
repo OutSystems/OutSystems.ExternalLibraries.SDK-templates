@@ -17,7 +17,7 @@ namespace OutSystems.IbanChecker.UnitTests.FileStorageTesting;
 /// </list>
 /// It does not validate metadata as the ODC File Storage SDK does, so always test your library in
 /// ODC before you release it. For the metadata rules, see
-/// https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99
+/// https://success.outsystems.com/documentation/outsystems_developer_cloud/building_apps/data_management/file_data_type/working_with_file_values_in_external_libraries/
 /// </summary>
 public sealed class InMemoryFileStorage : IFileStorage {
 
@@ -96,7 +96,7 @@ public sealed class InMemoryFileStorage : IFileStorage {
         // keys that differ only in casing throw an ArgumentException, and the file name is stored
         // last under Keys.FileName, so a FileName key in additionalUserData is ignored. No other
         // metadata rule is checked; for the full list, see
-        // https://www.outsystems.com/tk/redirect?g=b2fb0646-b8e6-4098-b262-65d03ab3cf99
+        // https://success.outsystems.com/documentation/outsystems_developer_cloud/building_apps/data_management/file_data_type/working_with_file_values_in_external_libraries/
         var userData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in additionalUserData ?? new Dictionary<string, string>()) {
             if (!userData.TryAdd(key.ToLowerInvariant(), value)) {
